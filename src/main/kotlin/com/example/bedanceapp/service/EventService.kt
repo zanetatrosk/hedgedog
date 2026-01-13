@@ -41,31 +41,29 @@ class EventService(
     }
 
     @Transactional(readOnly = true)
-    fun getAllPublishedEvents(): List<EventDto> {
+    fun getAllPublishedEvents(userId: UUID? = null): List<EventDto> {
         val events = eventRepository.findByStatus("published")
         return events.map { event ->
-            val organizerName = if (event.organizer?.profile?.firstName != null && event.organizer?.profile?.lastName != null) {
-                "${event.organizer?.profile?.firstName} ${event.organizer?.profile?.lastName}"
-            } else {
-                event.organizer?.username ?: "Unknown"
-            }
-
+            val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
             // Build address string from location
-            val address = event.location?.let { loc ->
-                buildString {
-                    loc.street?.let { append("$it ") }
-                    loc.houseNumber?.let { append("$it, ") }
-                    append("${loc.city}, ")
-                    append(loc.country)
-                    loc.postalCode?.let { append(" $it") }
-                }.trim()
-            }
+            val address = buildAddressString(event.location)
 
-            val countEventRegistration = eventRegistrationService.getRegistrationCountsByEventId(event.id)
-            val countInterested = event.id ?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
+            val eventId = event.id
+            val countEventRegistration = eventRegistrationService.getRegistrationCountsByEventId(eventId)
+            val countInterested = eventId?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
+            val isUserInterested = if (userId != null && eventId != null) {
+                userFavoriteRepository.existsByIdUserIdAndIdEventId(userId, eventId)
+            } else {
+                false
+            }
+            val registrationStatus = if(userId != null && eventId != null) {
+                eventRepository.findUserRegistrationStatus(eventId, userId)
+            } else {
+                null
+            }
             EventDto(
-                id = event.id.toString(),
-                organizer = organizerName,
+                id = eventId.toString(),
+                organizer = organizer,
                 eventName = event.eventName,
                 description = event.description,
                 date = event.eventDate.toString(),
@@ -77,8 +75,101 @@ class EventService(
                 tags = getTags(event),
                 attendees = countEventRegistration.total,
                 interested = countInterested,
-                promoMedia = mediaService.mapToDTO(event.promoMedia)
+                promoMedia = mediaService.mapToDTO(event.promoMedia),
+                isUserInterested = isUserInterested,
+                registrationStatus = registrationStatus,
+                status = event.status
             )
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getEventDetailById(eventId: UUID, userId: UUID? = null): EventDetailData {
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        // Build address string from location
+        val address = buildAddressString(event.location)
+
+        // Get registration stats
+        val registrationCount = eventRegistrationService.getRegistrationCountsByEventId(event.id)
+        val interestedCount = event.id?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
+
+        // Handle recurring dates if this event has a parent
+        val parentEventId = event.parentEventId
+        val recurringDates = if (parentEventId != null) {
+            val siblingEvents = eventRepository.findByParentEventId(parentEventId)
+            siblingEvents.map { sibling ->
+                val userStatus = userId?.let { uid ->
+                    sibling.id?.let { eventRepository.findUserRegistrationStatus(it, uid) }
+                        ?: "Not Joined"
+                }
+
+                val eventStatus = if (sibling.eventDate.isBefore(LocalDate.now())) "Past" else "Scheduled"
+
+                RecurringDateInfo(
+                    date = sibling.eventDate.toString(),
+                    id = sibling.id.toString(),
+                    status = eventStatus,
+                    statusUser = userStatus
+                )
+            }.sortedBy { it.date }
+        } else {
+            emptyList()
+        }
+
+        // Get end date for recurring events
+        val endDate = if (recurringDates.isNotEmpty()) {
+            recurringDates.maxByOrNull { it.date }?.date
+        } else {
+            null
+        }
+
+        return EventDetailData(
+            id = event.id.toString(),
+            basicInfo = EventDetailBasicInfo(
+                eventName = event.eventName,
+                address = address,
+                date = event.eventDate.toString(),
+                time = event.eventTime.toString(),
+                price = event.price,
+                currency = event.currency?.code,
+                endDate = endDate,
+                recurringDates = recurringDates,
+                organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
+            ),
+            additionalDetails = EventDetailAdditionalDetails(
+                danceStyles = event.danceStyles.map { it.name },
+                skillLevel = event.skillLevels.map { it.name },
+                typeOfEvent = event.typesOfEvents.map { it.name },
+                maxAttendees = event.maxAttendees,
+                allowWaitlist = event.allowWaitlist,
+                allowPartnerPairing = event.allowPartnerPairing
+            ),
+            description = event.description,
+            coverImage = mediaService.mapToDTO(event.promoMedia),
+            facebookEventUrl = null, // TODO: Add to Event model when needed
+            media = event.media.mapNotNull { mediaService.mapToDTO(it) },
+            attendeeStats = AttendeeStats(
+                going = RegistrationStats(
+                    total = registrationCount.total,
+                    leaders = registrationCount.leaders,
+                    followers = registrationCount.followers
+                ),
+                interested = interestedCount
+            )
+        )
+    }
+
+    private fun buildAddressString(location: Location?): String? {
+        return location?.let { loc ->
+            buildString {
+                loc.street?.let { append("$it ") }
+                loc.houseNumber?.let { append("$it, ") }
+                append("${loc.city}, ")
+                append(loc.country)
+                loc.postalCode?.let { append(" $it") }
+            }.trim()
         }
     }
     @Transactional
@@ -208,7 +299,7 @@ class EventService(
         return dates
     }
     @Transactional
-    fun createEventByOccurance(request: CreateEventRequest, organizerId: UUID): List<Event> {
+    fun createEventByOccurrence(request: CreateEventRequest, organizerId: UUID): List<Event> {
         // Validate organizer exists
         if( request.basicInfo.endDate == "" || request.basicInfo.endDate == null ) {
             return listOf(createEvent(request, organizerId))

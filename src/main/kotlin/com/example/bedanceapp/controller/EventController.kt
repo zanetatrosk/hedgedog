@@ -2,6 +2,7 @@ package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.CreateEventRequest
 import com.example.bedanceapp.model.CreateEventResponse
+import com.example.bedanceapp.model.EventDetailData
 import com.example.bedanceapp.model.EventDto
 import com.example.bedanceapp.service.EventService
 import org.springframework.http.HttpStatus
@@ -15,8 +16,8 @@ import java.util.UUID
 class EventController(private val eventService: EventService) {
 
     @GetMapping
-    fun getEvents(): List<EventDto> {
-        return eventService.getAllPublishedEvents()
+    fun getEvents(@RequestHeader("X-User-Id") userId: UUID ): List<EventDto> {
+        return eventService.getAllPublishedEvents(userId)
     }
 
     @PostMapping
@@ -24,7 +25,7 @@ class EventController(private val eventService: EventService) {
         @RequestBody request: CreateEventRequest,
         @RequestHeader("X-User-Id") organizerId: UUID  // TODO: Replace with actual authentication
     ): ResponseEntity<CreateEventResponse> {
-        val events = eventService.createEventByOccurance(request, organizerId).map { it.id }
+        val events = eventService.createEventByOccurrence(request, organizerId).map { it.id }
         return ResponseEntity.status(HttpStatus.CREATED).body(
             CreateEventResponse(
                 events = events,
@@ -49,8 +50,12 @@ class EventController(private val eventService: EventService) {
         )
     }
 
-//    @GetMapping("/{id}")
-//    fun getEventById(@PathVariable id: UUID): EventDto {
-//        return eventService.getAllEvent().firstOrNull { it.id == id.toString() }
-//    }
+    @GetMapping("/{id}")
+    fun getEventById(
+        @PathVariable id: UUID,
+        @RequestHeader("X-User-Id", required = false) userId: UUID?
+    ): ResponseEntity<EventDetailData> {
+        val eventDetail = eventService.getEventDetailById(id, userId)
+        return ResponseEntity.ok(eventDetail)
+    }
 }

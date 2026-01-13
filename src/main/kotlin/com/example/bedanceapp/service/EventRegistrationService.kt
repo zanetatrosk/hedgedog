@@ -47,7 +47,7 @@ class EventRegistrationService(
         if (eventId == null) {
             return EventRegistrationCount(0, 0, 0)
         }
-        val eventRegistrations = eventRegistrationRepository.findByEventId(eventId);
+        val eventRegistrations = eventRegistrationRepository.findByEventId(eventId)
         val roles = dancerRoleRepository.findAll().map { Pair(it.name, 0)  }
         val rolesCount = roles.toMap().toMutableMap()
         for (registration in eventRegistrations) {
@@ -64,6 +64,12 @@ class EventRegistrationService(
     @Transactional
     fun createRegistration(registration: EventRegistration): EventRegistration {
         return eventRegistrationRepository.save(registration)
+    }
+
+    @Transactional
+    fun getLastRegistrationByEventIdAndUserId(eventId: UUID, userId: UUID): EventRegistration? {
+        val registrations = eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)
+        return registrations.lastOrNull()
     }
 
 }

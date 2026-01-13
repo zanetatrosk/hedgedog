@@ -14,4 +14,5 @@ interface EventRegistrationRepository : JpaRepository<EventRegistration, UUID> {
 
     fun findByUserId(userId: UUID): List<EventRegistration>
 
+    fun findByEventIdAndUserId(eventId: UUID, userId: UUID): List<EventRegistration>
 }

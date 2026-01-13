@@ -4,7 +4,7 @@ import java.math.BigDecimal
 
 data class EventDto(
     val id: String,
-    val organizer: String,
+    val organizer: OrganizerDto,
     val eventName: String,
     val description: String? = null,
     val date: String,
@@ -16,5 +16,8 @@ data class EventDto(
     val tags: List<String>? = null,
     val attendees: Int? = 0,
     val interested: Int? = 0,
-    val promoMedia: EventMedia? = null
+    val promoMedia: EventMedia? = null,
+    val isUserInterested: Boolean? = false,
+    val registrationStatus: String? = null,
+    val status: String? = null
 )
