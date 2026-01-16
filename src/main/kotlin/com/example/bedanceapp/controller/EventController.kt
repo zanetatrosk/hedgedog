@@ -4,7 +4,10 @@ import com.example.bedanceapp.model.CreateEventRequest
 import com.example.bedanceapp.model.CreateEventResponse
 import com.example.bedanceapp.model.EventDetailData
 import com.example.bedanceapp.model.EventDto
+import com.example.bedanceapp.model.PagedResponse
 import com.example.bedanceapp.service.EventService
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -16,8 +19,38 @@ import java.util.UUID
 class EventController(private val eventService: EventService) {
 
     @GetMapping
-    fun getEvents(@RequestHeader("X-User-Id") userId: UUID ): List<EventDto> {
-        return eventService.getAllPublishedEvents(userId)
+    fun getEvents(
+        @RequestHeader("X-User-Id") userId: UUID? = null,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(required = false) eventName: String?,
+        @RequestParam(required = false) city: String?,
+        @RequestParam(required = false) country: String?,
+        @RequestParam(required = false) danceStyles: List<UUID>?,
+        @RequestParam(required = false) eventTypes: List<UUID>?
+    ): ResponseEntity<PagedResponse<EventDto>> {
+        val sort = Sort.by(Sort.Order.asc("eventDate"), Sort.Order.asc("eventTime"))
+        val pageable = PageRequest.of(page, size, sort)
+        val eventsPage = eventService.getAllPublishedEventsPaginated(
+            userId = userId,
+            pageable = pageable,
+            eventName = eventName,
+            city = city,
+            country = country,
+            danceStyleIds = danceStyles,
+            eventTypeIds = eventTypes
+        )
+
+        val response = PagedResponse(
+            content = eventsPage.content,
+            page = eventsPage.number,
+            size = eventsPage.size,
+            totalElements = eventsPage.totalElements,
+            totalPages = eventsPage.totalPages,
+            isLast = eventsPage.isLast
+        )
+
+        return ResponseEntity.ok(response)
     }
 
     @PostMapping
@@ -58,4 +91,5 @@ class EventController(private val eventService: EventService) {
         val eventDetail = eventService.getEventDetailById(id, userId)
         return ResponseEntity.ok(eventDetail)
     }
+
 }

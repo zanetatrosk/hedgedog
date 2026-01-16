@@ -49,7 +49,8 @@ class LocationService(
         country: String,
         postalCode: String?,
         houseNumber: String?,
-        state: String
+        state: String,
+        county: String? = null
     ): Location {
         // For now, always create a new location
         // You could add logic to find existing locations by matching address fields
@@ -60,7 +61,8 @@ class LocationService(
             country = country,
             postalCode = postalCode,
             houseNumber = houseNumber,
-            state = state
+            state = state,
+            county = county
         )
         return locationRepository.save(location)
     }

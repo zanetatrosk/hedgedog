@@ -10,6 +10,9 @@ import com.example.bedanceapp.repository.UserRepository
 import com.example.bedanceapp.repository.CurrencyRepository
 import com.example.bedanceapp.repository.EventParentRepository
 import com.example.bedanceapp.repository.UserFavoriteRepository
+import com.example.bedanceapp.specification.EventSpecification
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -44,43 +47,71 @@ class EventService(
     fun getAllPublishedEvents(userId: UUID? = null): List<EventDto> {
         val events = eventRepository.findByStatus("published")
         return events.map { event ->
-            val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
-            // Build address string from location
-            val address = buildAddressString(event.location)
-
-            val eventId = event.id
-            val countEventRegistration = eventRegistrationService.getRegistrationCountsByEventId(eventId)
-            val countInterested = eventId?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
-            val isUserInterested = if (userId != null && eventId != null) {
-                userFavoriteRepository.existsByIdUserIdAndIdEventId(userId, eventId)
-            } else {
-                false
-            }
-            val registrationStatus = if(userId != null && eventId != null) {
-                eventRepository.findUserRegistrationStatus(eventId, userId)
-            } else {
-                null
-            }
-            EventDto(
-                id = eventId.toString(),
-                organizer = organizer,
-                eventName = event.eventName,
-                description = event.description,
-                date = event.eventDate.toString(),
-                time = event.eventTime.toString(),
-                address = address,
-                price = event.price,
-                currency = event.currency?.code,
-                maxAttendees = event.maxAttendees,
-                tags = getTags(event),
-                attendees = countEventRegistration.total,
-                interested = countInterested,
-                promoMedia = mediaService.mapToDTO(event.promoMedia),
-                isUserInterested = isUserInterested,
-                registrationStatus = registrationStatus,
-                status = event.status
-            )
+            mapEventToDto(event, userId)
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun getAllPublishedEventsPaginated(
+        userId: UUID? = null,
+        pageable: Pageable,
+        eventName: String? = null,
+        city: String? = null,
+        country: String? = null,
+        danceStyleIds: List<UUID>? = null,
+        eventTypeIds: List<UUID>? = null
+    ): Page<EventDto> {
+        val specification = EventSpecification.buildSpecification(
+            status = "published",
+            eventName = eventName,
+            city = city,
+            country = country,
+            danceStyleIds = danceStyleIds,
+            eventTypeIds = eventTypeIds
+        )
+        val eventsPage = eventRepository.findAll(specification, pageable)
+        return eventsPage.map { event ->
+            mapEventToDto(event, userId)
+        }
+    }
+
+    private fun mapEventToDto(event: Event, userId: UUID?): EventDto {
+        val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
+        // Build address string from location
+        val address = buildAddressString(event.location)
+
+        val eventId = event.id
+        val countEventRegistration = eventRegistrationService.getRegistrationCountsByEventId(eventId)
+        val countInterested = eventId?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
+        val isUserInterested = if (userId != null && eventId != null) {
+            userFavoriteRepository.existsByIdUserIdAndIdEventId(userId, eventId)
+        } else {
+            false
+        }
+        val registrationStatus = if(userId != null && eventId != null) {
+            eventRepository.findUserRegistrationStatus(eventId, userId)
+        } else {
+            null
+        }
+        return EventDto(
+            id = eventId.toString(),
+            organizer = organizer,
+            eventName = event.eventName,
+            description = event.description,
+            date = event.eventDate.toString(),
+            time = event.eventTime.toString(),
+            address = address,
+            price = event.price,
+            currency = event.currency?.code,
+            maxAttendees = event.maxAttendees,
+            tags = getTags(event),
+            attendees = countEventRegistration.total,
+            interested = countInterested,
+            promoMedia = mediaService.mapToDTO(event.promoMedia),
+            isUserInterested = isUserInterested,
+            registrationStatus = registrationStatus,
+            status = event.status
+        )
     }
 
     @Transactional(readOnly = true)
@@ -166,8 +197,9 @@ class EventService(
             buildString {
                 loc.street?.let { append("$it ") }
                 loc.houseNumber?.let { append("$it, ") }
-                append("${loc.city}, ")
-                append(loc.country)
+                append("${loc.city}")
+                loc.county?.let { append(", $it") }
+                append(", ${loc.country}")
                 loc.postalCode?.let { append(" $it") }
             }.trim()
         }
@@ -233,7 +265,8 @@ class EventService(
                 country = locationRequest.country,
                 postalCode = locationRequest.postalCode,
                 houseNumber = locationRequest.houseNumber,
-                state = locationRequest.state
+                state = locationRequest.state,
+                county = locationRequest.county
             )
         } else {
             null

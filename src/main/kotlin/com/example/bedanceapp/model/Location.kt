@@ -34,6 +34,9 @@ data class Location(
     @Column
     val state: String,
 
+    @Column(length = 100)
+    val county: String? = null,
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
     val createdAt: LocalDateTime? = null,

@@ -109,6 +109,7 @@ CREATE TABLE locations (
                            house_number VARCHAR(20),
                            city VARCHAR(100) NOT NULL,
                            state VARCHAR(100),
+                           county VARCHAR(100),
                            postal_code VARCHAR(20),
                            country VARCHAR(100) NOT NULL,
                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
