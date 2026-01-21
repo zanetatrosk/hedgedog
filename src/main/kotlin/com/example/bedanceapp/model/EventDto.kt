@@ -17,7 +17,6 @@ data class EventDto(
     val attendees: Int? = 0,
     val interested: Int? = 0,
     val promoMedia: EventMedia? = null,
-    val isUserInterested: Boolean? = false,
     val registrationStatus: String? = null,
     val status: String? = null
 )

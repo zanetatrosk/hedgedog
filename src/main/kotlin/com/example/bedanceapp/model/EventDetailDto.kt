@@ -22,14 +22,14 @@ data class EventDetailBasicInfo(
     val currency: String?,
     val endDate: String?,
     val organizer: OrganizerDto,
-    val recurringDates: List<RecurringDateInfo>
+    val recurringDates: List<RecurringDateInfo>,
+    val status: String,  // "Past", "Scheduled", "Cancelled"
+    val statusUser: String?  // "Joined", "Interested", null
 )
 
 data class RecurringDateInfo(
     val date: String,
     val id: String,
-    val status: String,  // "Past", "Scheduled", "Cancelled"
-    val statusUser: String?  // "Joined", "Interested", null
 )
 
 data class EventDetailAdditionalDetails(

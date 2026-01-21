@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS events_media CASCADE;
 DROP TABLE IF EXISTS user_media CASCADE;
 DROP TABLE IF EXISTS profile_media CASCADE;
 DROP TABLE IF EXISTS event_media CASCADE;
+DROP TABLE IF EXISTS locations CASCADE;
 -- End of removing
 
 -- Users table
@@ -164,15 +165,6 @@ CREATE TABLE event_registration (
 ALTER TABLE event_registration ADD CONSTRAINT pk_event_registration PRIMARY KEY (id);
 ALTER TABLE event_registration ADD CONSTRAINT uc_event_registration_user_event UNIQUE (event_id, user_id);
 
-
--- User favorites table
-CREATE TABLE user_favorites (
-                                user_id UUID NOT NULL,
-                                event_id UUID NOT NULL,
-                                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-ALTER TABLE user_favorites ADD CONSTRAINT pk_user_favorites PRIMARY KEY (user_id, event_id);
-
 -- Notifications table
 CREATE TABLE notifications (
                                id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -252,9 +244,6 @@ ALTER TABLE event_registration ADD CONSTRAINT fk_event_registration_events FOREI
 ALTER TABLE event_registration ADD CONSTRAINT fk_event_registration_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
 ALTER TABLE event_registration ADD CONSTRAINT fk_event_registration_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
 
--- user_favorites references
-ALTER TABLE user_favorites ADD CONSTRAINT fk_user_favorites_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
-ALTER TABLE user_favorites ADD CONSTRAINT fk_user_favorites_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
 
 -- notifications references
 ALTER TABLE notifications ADD CONSTRAINT fk_notifications_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;

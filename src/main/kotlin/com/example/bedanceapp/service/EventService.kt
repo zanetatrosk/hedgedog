@@ -9,7 +9,6 @@ import com.example.bedanceapp.repository.MediaRepository
 import com.example.bedanceapp.repository.UserRepository
 import com.example.bedanceapp.repository.CurrencyRepository
 import com.example.bedanceapp.repository.EventParentRepository
-import com.example.bedanceapp.repository.UserFavoriteRepository
 import com.example.bedanceapp.specification.EventSpecification
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -32,7 +31,6 @@ class EventService(
     private val locationService: LocationService,
     private val eventParentRepository: EventParentRepository,
     private val eventRegistrationService: EventRegistrationService,
-    private val userFavoriteRepository: UserFavoriteRepository
 ) {
 
     fun getTags(event: Event): List<String> {
@@ -41,14 +39,6 @@ class EventService(
         val typesOfEvents = event.typesOfEvents.map { it.name }
 
         return danceStyles + skillLevels + typesOfEvents
-    }
-
-    @Transactional(readOnly = true)
-    fun getAllPublishedEvents(userId: UUID? = null): List<EventDto> {
-        val events = eventRepository.findByStatus("published")
-        return events.map { event ->
-            mapEventToDto(event, userId)
-        }
     }
 
     @Transactional(readOnly = true)
@@ -81,13 +71,8 @@ class EventService(
         val address = buildAddressString(event.location)
 
         val eventId = event.id
-        val countEventRegistration = eventRegistrationService.getRegistrationCountsByEventId(eventId)
-        val countInterested = eventId?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
-        val isUserInterested = if (userId != null && eventId != null) {
-            userFavoriteRepository.existsByIdUserIdAndIdEventId(userId, eventId)
-        } else {
-            false
-        }
+        val countEventRegistration = eventRegistrationService.getRegistrationRolesCountsByEventId(eventId, "going")
+        val countInterested = eventRegistrationService.getRegistrationCountByEventId(eventId, "interested")
         val registrationStatus = if(userId != null && eventId != null) {
             eventRepository.findUserRegistrationStatus(eventId, userId)
         } else {
@@ -108,7 +93,6 @@ class EventService(
             attendees = countEventRegistration.total,
             interested = countInterested,
             promoMedia = mediaService.mapToDTO(event.promoMedia),
-            isUserInterested = isUserInterested,
             registrationStatus = registrationStatus,
             status = event.status
         )
@@ -121,28 +105,19 @@ class EventService(
 
         // Build address string from location
         val address = buildAddressString(event.location)
+        val statusUser = eventRegistrationService.getLastRegistrationByEventIdAndUserId(eventId, userId)
 
         // Get registration stats
-        val registrationCount = eventRegistrationService.getRegistrationCountsByEventId(event.id)
-        val interestedCount = event.id?.let { userFavoriteRepository.countInterestedUsersByEventId(it) } ?: 0
-
+        val registrationCount = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, "going")
+        val interestedCount = eventRegistrationService.getRegistrationCountByEventId(eventId, "interested")
         // Handle recurring dates if this event has a parent
         val parentEventId = event.parentEventId
         val recurringDates = if (parentEventId != null) {
             val siblingEvents = eventRepository.findByParentEventId(parentEventId)
             siblingEvents.map { sibling ->
-                val userStatus = userId?.let { uid ->
-                    sibling.id?.let { eventRepository.findUserRegistrationStatus(it, uid) }
-                        ?: "Not Joined"
-                }
-
-                val eventStatus = if (sibling.eventDate.isBefore(LocalDate.now())) "Past" else "Scheduled"
-
                 RecurringDateInfo(
                     date = sibling.eventDate.toString(),
-                    id = sibling.id.toString(),
-                    status = eventStatus,
-                    statusUser = userStatus
+                    id = sibling.id.toString()
                 )
             }.sortedBy { it.date }
         } else {
@@ -167,7 +142,9 @@ class EventService(
                 currency = event.currency?.code,
                 endDate = endDate,
                 recurringDates = recurringDates,
-                organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
+                organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
+                status = event.status,
+                statusUser = statusUser?.status
             ),
             additionalDetails = EventDetailAdditionalDetails(
                 danceStyles = event.danceStyles.map { it.name },

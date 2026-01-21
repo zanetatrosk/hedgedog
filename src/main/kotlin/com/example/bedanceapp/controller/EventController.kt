@@ -4,8 +4,10 @@ import com.example.bedanceapp.model.CreateEventRequest
 import com.example.bedanceapp.model.CreateEventResponse
 import com.example.bedanceapp.model.EventDetailData
 import com.example.bedanceapp.model.EventDto
+import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.PagedResponse
 import com.example.bedanceapp.service.EventService
+import com.example.bedanceapp.service.EventRegistrationService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -16,7 +18,10 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/events")
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
-class EventController(private val eventService: EventService) {
+class EventController(
+    private val eventService: EventService,
+    private val eventRegistrationService: EventRegistrationService
+) {
 
     @GetMapping
     fun getEvents(
@@ -92,4 +97,67 @@ class EventController(private val eventService: EventService) {
         return ResponseEntity.ok(eventDetail)
     }
 
+    /**
+     * Get user's RSVP for an event
+     * GET /api/events/{eventId}/my-rsvp
+     */
+    @GetMapping("/{eventId}/my-rsvp")
+    fun getMyRsvp(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") userId: UUID
+    ): ResponseEntity<EventRegistration> {
+        val registration = eventRegistrationService.getLastRegistrationByEventIdAndUserId(eventId, userId)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+        return ResponseEntity.ok(registration)
+    }
+
+    /**
+     * Create or update user's RSVP for an event
+     * PUT /api/events/{eventId}/my-rsvp
+     * Valid statuses: interested, going, waitlisted
+     */
+    @PutMapping("/{eventId}/my-rsvp")
+    fun createOrUpdateMyRsvp(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") userId: UUID,
+        @RequestBody request: RegisterEventRequest
+    ): ResponseEntity<EventRegistration> {
+        val registration = eventRegistrationService.registerUserForEvent(
+            eventId = eventId,
+            userId = userId,
+            status = request.status,
+            roleId = request.roleId,
+            paid = request.paid ?: false
+        )
+        return ResponseEntity.ok(registration)
+    }
+
+    /**
+     * Cancel/remove user's RSVP for an event
+     * DELETE /api/events/{eventId}/my-rsvp
+     */
+    @DeleteMapping("/{eventId}/my-rsvp")
+    fun deleteMyRsvp(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") userId: UUID
+    ): ResponseEntity<Map<String, String>> {
+        val cancelled = eventRegistrationService.cancelRegistration(eventId, userId)
+        return if (cancelled) {
+            ResponseEntity.ok(mapOf("message" to "RSVP cancelled successfully"))
+        } else {
+            ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(mapOf("message" to "No RSVP found for this event"))
+        }
+    }
+
 }
+
+/**
+ * Request body for event registration
+ */
+data class RegisterEventRequest(
+    val status: String,  // interested, going, waitlisted
+    val roleId: UUID? = null,  // Leader, Follower, Both
+    val paid: Boolean? = false
+)
+
