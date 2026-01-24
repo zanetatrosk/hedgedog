@@ -15,7 +15,7 @@ data class EventDetailData(
 
 data class EventDetailBasicInfo(
     val eventName: String,
-    val address: String?,
+    val location: LocationRequest?,
     val date: String,
     val time: String,
     val price: BigDecimal?,
@@ -33,9 +33,9 @@ data class RecurringDateInfo(
 )
 
 data class EventDetailAdditionalDetails(
-    val danceStyles: List<String>,
-    val skillLevel: List<String>,
-    val typeOfEvent: List<String>,
+    val danceStyles: List<CodebookItem>,
+    val skillLevel: List<CodebookItem>,
+    val typeOfEvent: List<CodebookItem>,
     val maxAttendees: Int?,
     val allowWaitlist: Boolean,
     val allowPartnerPairing: Boolean
@@ -51,4 +51,10 @@ data class RegistrationStats(
     val leaders: Int,
     val followers: Int
 )
+
+data class CodebookItem (
+    val id: String,
+    val name: String,
+)
+
 

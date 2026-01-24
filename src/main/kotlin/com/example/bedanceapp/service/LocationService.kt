@@ -49,7 +49,7 @@ class LocationService(
         country: String,
         postalCode: String?,
         houseNumber: String?,
-        state: String,
+        state: String?,
         county: String? = null
     ): Location {
         // For now, always create a new location

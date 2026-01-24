@@ -28,7 +28,7 @@ data class LocationRequest(
     val country: String,
     val postalCode: String?,
     val houseNumber: String?,
-    val state: String,
+    val state: String?,
     val county: String?
 )
 

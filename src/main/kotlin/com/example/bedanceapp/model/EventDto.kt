@@ -9,7 +9,7 @@ data class EventDto(
     val description: String? = null,
     val date: String,
     val time: String,
-    val address: String?,
+    val location: LocationRequest?,
     val price: BigDecimal?,
     val currency: String? = null,
     val maxAttendees: Int? = null,
@@ -18,5 +18,5 @@ data class EventDto(
     val interested: Int? = 0,
     val promoMedia: EventMedia? = null,
     val registrationStatus: String? = null,
-    val status: String? = null
+    val status: EventStatus? = null
 )

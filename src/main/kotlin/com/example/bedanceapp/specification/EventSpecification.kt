@@ -7,9 +7,15 @@ import java.util.UUID
 
 object EventSpecification {
 
-    fun hasStatus(status: String): Specification<Event> {
+    fun hasStatus(status: EventStatus): Specification<Event> {
         return Specification { root, _, criteriaBuilder ->
-            criteriaBuilder.equal(root.get<String>("status"), status)
+            criteriaBuilder.equal(root.get<EventStatus>("status"), status)
+        }
+    }
+
+    fun hasStatuses(statuses: List<EventStatus>): Specification<Event> {
+        return Specification { root, _, _ ->
+            root.get<EventStatus>("status").`in`(statuses)
         }
     }
 
@@ -85,7 +91,7 @@ object EventSpecification {
     }
 
     fun buildSpecification(
-        status: String,
+        status: EventStatus,
         eventName: String?,
         city: String?,
         country: String?,
@@ -93,6 +99,30 @@ object EventSpecification {
         eventTypeIds: List<UUID>?
     ): Specification<Event> {
         var spec = hasStatus(status)
+
+        hasEventName(eventName)?.let { spec = spec.and(it) }
+        hasLocationFilters(city, country)?.let { spec = spec.and(it) }
+        hasDanceStyles(danceStyleIds)?.let { spec = spec.and(it) }
+        hasEventTypes(eventTypeIds)?.let { spec = spec.and(it) }
+
+        return spec
+    }
+
+    fun buildSpecificationForPublicEvents(
+        includeCancelled: Boolean,
+        eventName: String?,
+        city: String?,
+        country: String?,
+        danceStyleIds: List<UUID>?,
+        eventTypeIds: List<UUID>?
+    ): Specification<Event> {
+        val statuses = if (includeCancelled) {
+            listOf(EventStatus.PUBLISHED, EventStatus.CANCELLED)
+        } else {
+            listOf(EventStatus.PUBLISHED)
+        }
+
+        var spec = hasStatuses(statuses)
 
         hasEventName(eventName)?.let { spec = spec.and(it) }
         hasLocationFilters(city, country)?.let { spec = spec.and(it) }

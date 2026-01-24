@@ -60,7 +60,8 @@ data class Event(
     val allowPartnerPairing: Boolean = false,
 
     @Column(nullable = false)
-    val status: String,
+    @Enumerated(EnumType.STRING)
+    val status: EventStatus,
 
     @Column(name = "created_at", updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),

@@ -1,6 +1,7 @@
 package com.example.bedanceapp.repository
 
 import com.example.bedanceapp.model.Event
+import com.example.bedanceapp.model.EventStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -12,11 +13,15 @@ import java.util.UUID
 
 @Repository
 interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor<Event> {
-    fun findByStatus(status: String): List<Event>
+    fun findByStatus(status: EventStatus): List<Event>
 
-    fun findByStatus(status: String, pageable: Pageable): Page<Event>
+    fun findByStatus(status: EventStatus, pageable: Pageable): Page<Event>
 
     fun findByParentEventId(parentEventId: UUID): List<Event>
+
+    fun findByOrganizerId(organizerId: UUID, pageable: Pageable): Page<Event>
+
+    fun findByOrganizerIdAndStatus(organizerId: UUID, status: EventStatus, pageable: Pageable): Page<Event>
 
     @Query("""
         SELECT er.status 

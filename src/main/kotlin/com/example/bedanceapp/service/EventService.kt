@@ -49,10 +49,11 @@ class EventService(
         city: String? = null,
         country: String? = null,
         danceStyleIds: List<UUID>? = null,
-        eventTypeIds: List<UUID>? = null
+        eventTypeIds: List<UUID>? = null,
+        includeCancelled: Boolean = true
     ): Page<EventDto> {
-        val specification = EventSpecification.buildSpecification(
-            status = "published",
+        val specification = EventSpecification.buildSpecificationForPublicEvents(
+            includeCancelled = includeCancelled,
             eventName = eventName,
             city = city,
             country = country,
@@ -68,8 +69,6 @@ class EventService(
     private fun mapEventToDto(event: Event, userId: UUID?): EventDto {
         val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
         // Build address string from location
-        val address = buildAddressString(event.location)
-
         val eventId = event.id
         val countEventRegistration = eventRegistrationService.getRegistrationRolesCountsByEventId(eventId, "going")
         val countInterested = eventRegistrationService.getRegistrationCountByEventId(eventId, "interested")
@@ -85,7 +84,7 @@ class EventService(
             description = event.description,
             date = event.eventDate.toString(),
             time = event.eventTime.toString(),
-            address = address,
+            location = locationToDto(event.location),
             price = event.price,
             currency = event.currency?.code,
             maxAttendees = event.maxAttendees,
@@ -103,8 +102,6 @@ class EventService(
         val event = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 
-        // Build address string from location
-        val address = buildAddressString(event.location)
         val statusUser = eventRegistrationService.getLastRegistrationByEventIdAndUserId(eventId, userId)
 
         // Get registration stats
@@ -135,7 +132,7 @@ class EventService(
             id = event.id.toString(),
             basicInfo = EventDetailBasicInfo(
                 eventName = event.eventName,
-                address = address,
+                location = locationToDto(event.location),
                 date = event.eventDate.toString(),
                 time = event.eventTime.toString(),
                 price = event.price,
@@ -143,13 +140,13 @@ class EventService(
                 endDate = endDate,
                 recurringDates = recurringDates,
                 organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
-                status = event.status,
+                status = event.status.name,
                 statusUser = statusUser?.status
             ),
             additionalDetails = EventDetailAdditionalDetails(
-                danceStyles = event.danceStyles.map { it.name },
-                skillLevel = event.skillLevels.map { it.name },
-                typeOfEvent = event.typesOfEvents.map { it.name },
+                danceStyles = event.danceStyles.map { CodebookItem(it.id.toString(), it.name) },
+                skillLevel = event.skillLevels.map { CodebookItem(it.id.toString(), it.name) },
+                typeOfEvent = event.typesOfEvents.map { CodebookItem(it.id.toString(), it.name) },
                 maxAttendees = event.maxAttendees,
                 allowWaitlist = event.allowWaitlist,
                 allowPartnerPairing = event.allowPartnerPairing
@@ -169,16 +166,20 @@ class EventService(
         )
     }
 
-    private fun buildAddressString(location: Location?): String? {
-        return location?.let { loc ->
-            buildString {
-                loc.street?.let { append("$it ") }
-                loc.houseNumber?.let { append("$it, ") }
-                append("${loc.city}")
-                loc.county?.let { append(", $it") }
-                append(", ${loc.country}")
-                loc.postalCode?.let { append(" $it") }
-            }.trim()
+    private fun locationToDto(location: Location?): LocationRequest? {
+        return if (location != null) {
+            LocationRequest(
+                name = location.name,
+                street = location.street,
+                city = location.city,
+                country = location.country,
+                county = location.county,
+                postalCode = location.postalCode,
+                houseNumber = location.houseNumber,
+                state = location.state
+                )
+        } else {
+            null
         }
     }
     @Transactional
@@ -207,6 +208,7 @@ class EventService(
             organizerId,
             date = LocalDate.parse(request.basicInfo.date),
             parentId = existingEvent.parentEventId,
+            status = existingEvent.status,
             existingEventId = eventId
         )
 
@@ -218,6 +220,7 @@ class EventService(
         organizerId: UUID,
         date: LocalDate? = null,
         parentId: UUID? = null,
+        status: EventStatus? = null,
         existingEventId: UUID? = null
     ): Event {
         // Parse date and time
@@ -290,7 +293,7 @@ class EventService(
             maxAttendees = request.additionalDetails?.maxAttendees,
             allowWaitlist = request.additionalDetails?.allowWaitlist ?: false,
             allowPartnerPairing = request.additionalDetails?.allowPartnerPairing ?: false,
-            status = "draft", // Default status
+            status = status ?: EventStatus.DRAFT,
             danceStyles = danceStyles,
             skillLevels = skillLevels,
             typesOfEvents = eventTypes,
@@ -324,4 +327,62 @@ class EventService(
         return events
     }
 
+    @Transactional
+    fun publishEvent(eventId: UUID, organizerId: UUID): Event {
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        // Validate organizer
+        if (event.organizerId != organizerId) {
+            throw IllegalArgumentException("Only the event organizer can publish this event")
+        }
+
+        // Validate current status
+        if (event.status != EventStatus.DRAFT) {
+            throw IllegalArgumentException("Only draft events can be published. Current status: ${event.status}")
+        }
+
+        // Update status to published
+        val updatedEvent = event.copy(status = EventStatus.PUBLISHED, updatedAt = java.time.LocalDateTime.now())
+        return eventRepository.save(updatedEvent)
+    }
+
+    @Transactional
+    fun cancelEvent(eventId: UUID, organizerId: UUID): Event {
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        // Validate organizer
+        if (event.organizerId != organizerId) {
+            throw IllegalArgumentException("Only the event organizer can cancel this event")
+        }
+
+        // Validate current status
+        if (event.status != EventStatus.PUBLISHED) {
+            throw IllegalArgumentException("Only published events can be cancelled. Current status: ${event.status}")
+        }
+
+        // Update status to cancelled (soft delete)
+        val updatedEvent = event.copy(status = EventStatus.CANCELLED, updatedAt = java.time.LocalDateTime.now())
+        return eventRepository.save(updatedEvent)
+    }
+
+    @Transactional
+    fun deleteEvent(eventId: UUID, organizerId: UUID) {
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        // Validate organizer
+        if (event.organizerId != organizerId) {
+            throw IllegalArgumentException("Only the event organizer can delete this event")
+        }
+
+        // Validate current status - only drafts can be hard deleted
+        if (event.status != EventStatus.DRAFT) {
+            throw IllegalArgumentException("Only draft events can be deleted. Published events must be cancelled instead. Current status: ${event.status}")
+        }
+
+        // Hard delete
+        eventRepository.delete(event)
+    }
 }

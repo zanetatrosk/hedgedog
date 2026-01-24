@@ -5,6 +5,7 @@ import com.example.bedanceapp.model.CreateEventResponse
 import com.example.bedanceapp.model.EventDetailData
 import com.example.bedanceapp.model.EventDto
 import com.example.bedanceapp.model.EventRegistration
+import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.PagedResponse
 import com.example.bedanceapp.service.EventService
 import com.example.bedanceapp.service.EventRegistrationService
@@ -32,7 +33,8 @@ class EventController(
         @RequestParam(required = false) city: String?,
         @RequestParam(required = false) country: String?,
         @RequestParam(required = false) danceStyles: List<UUID>?,
-        @RequestParam(required = false) eventTypes: List<UUID>?
+        @RequestParam(required = false) eventTypes: List<UUID>?,
+        @RequestParam(defaultValue = "true") includeCancelled: Boolean
     ): ResponseEntity<PagedResponse<EventDto>> {
         val sort = Sort.by(Sort.Order.asc("eventDate"), Sort.Order.asc("eventTime"))
         val pageable = PageRequest.of(page, size, sort)
@@ -43,7 +45,8 @@ class EventController(
             city = city,
             country = country,
             danceStyleIds = danceStyles,
-            eventTypeIds = eventTypes
+            eventTypeIds = eventTypes,
+            includeCancelled = includeCancelled
         )
 
         val response = PagedResponse(
@@ -150,6 +153,81 @@ class EventController(
         }
     }
 
+    /**
+     * Publish a draft event
+     * PATCH /api/events/{eventId}/publish
+     */
+    @PatchMapping("/{eventId}/publish")
+    fun publishEvent(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") organizerId: UUID
+    ): ResponseEntity<EventStatusResponse> {
+        return try {
+            val event = eventService.publishEvent(eventId, organizerId)
+            ResponseEntity.ok(
+                EventStatusResponse(
+                    id = event.id,
+                    status = event.status.name,
+                    message = "Event published successfully"
+                )
+            )
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(
+                EventStatusResponse(
+                    id = eventId,
+                    status = null,
+                    message = e.message ?: "Cannot publish event"
+                )
+            )
+        }
+    }
+
+    /**
+     * Cancel a published event (soft delete)
+     * PATCH /api/events/{eventId}/cancel
+     */
+    @PatchMapping("/{eventId}/cancel")
+    fun cancelEvent(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") organizerId: UUID
+    ): ResponseEntity<EventStatusResponse> {
+        return try {
+            val event = eventService.cancelEvent(eventId, organizerId)
+            ResponseEntity.ok(
+                EventStatusResponse(
+                    id = event.id,
+                    status = event.status.name,
+                    message = "Event cancelled successfully"
+                )
+            )
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(
+                EventStatusResponse(
+                    id = eventId,
+                    status = null,
+                    message = e.message ?: "Cannot cancel event"
+                )
+            )
+        }
+    }
+
+    /**
+     * Delete a draft event (hard delete)
+     * DELETE /api/events/{eventId}
+     */
+    @DeleteMapping("/{eventId}")
+    fun deleteEvent(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") organizerId: UUID
+    ): ResponseEntity<Map<String, String>> {
+        return try {
+            eventService.deleteEvent(eventId, organizerId)
+            ResponseEntity.noContent().build()
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest()
+                .body(mapOf("message" to (e.message ?: "Cannot delete event")))
+        }
+    }
 }
 
 /**
@@ -160,4 +238,14 @@ data class RegisterEventRequest(
     val roleId: UUID? = null,  // Leader, Follower, Both
     val paid: Boolean? = false
 )
+
+/**
+ * Response body for event status changes
+ */
+data class EventStatusResponse(
+    val id: UUID?,
+    val status: String?,
+    val message: String
+)
+
 

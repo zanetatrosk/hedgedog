@@ -32,7 +32,7 @@ data class Location(
     val houseNumber: String? = null,
 
     @Column
-    val state: String,
+    val state: String? = null,
 
     @Column(length = 100)
     val county: String? = null,
