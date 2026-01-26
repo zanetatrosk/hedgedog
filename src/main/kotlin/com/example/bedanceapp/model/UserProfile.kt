@@ -31,7 +31,27 @@ data class UserProfile(
     @Column(name = "general_skill_level_id")
     val generalSkillLevelId: UUID? = null,
 
+    @Column(name = "avatar_media_id")
+    val avatarMediaId: UUID? = null,
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_media",
+        joinColumns = [JoinColumn(name = "user_id")],
+        inverseJoinColumns = [JoinColumn(name = "media_id")]
+    )
+    val userMedia: MutableList<Media> = mutableListOf(),
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_dance_styles",
+        joinColumns = [JoinColumn(name = "user_id")],
+        inverseJoinColumns = [JoinColumn(name = "dance_style_id")]
+    )
+    val danceStyles: List<DanceStyle> = emptyList(),
+
     val city: String? = null,
+
     val country: String? = null,
 
     @Column(name = "created_at", updatable = false)

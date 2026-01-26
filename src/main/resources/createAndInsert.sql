@@ -44,6 +44,7 @@ CREATE TABLE user_profiles (
                                bio TEXT,
                                role_id UUID,
                                general_skill_level_id UUID,
+                               avatar_media_id UUID,
                                city VARCHAR(100),
                                country VARCHAR(100),
                                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -181,7 +182,6 @@ ALTER TABLE notifications ADD CONSTRAINT pk_notifications PRIMARY KEY (id);
 CREATE TABLE user_media (
                             user_id UUID NOT NULL,
                             media_id UUID NOT NULL,
-                            is_primary BOOLEAN NOT NULL DEFAULT false,
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE user_media ADD CONSTRAINT pk_user_media PRIMARY KEY (user_id, media_id);
@@ -230,6 +230,7 @@ ALTER TABLE events_media ADD CONSTRAINT pk_events_media PRIMARY KEY (event_id, m
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_general_skill FOREIGN KEY (general_skill_level_id) REFERENCES skill_levels (id) ON DELETE SET NULL;
+ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_avatar_media FOREIGN KEY (avatar_media_id) REFERENCES media (id) ON DELETE SET NULL;
 
 -- events references
 ALTER TABLE events ADD CONSTRAINT fk_events_organizer FOREIGN KEY (organizer_id) REFERENCES users (id) ON DELETE CASCADE;
@@ -275,7 +276,6 @@ CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_user_dance_styles_user ON user_dance_styles(user_id);
 CREATE INDEX idx_user_dance_styles_dance ON user_dance_styles(dance_style_id);
 CREATE INDEX idx_user_media_user ON user_media(user_id);
-CREATE INDEX idx_user_media_primary ON user_media(user_id, is_primary);
 
 -- =====================================================
 -- SEED DATA - Predefined Values
