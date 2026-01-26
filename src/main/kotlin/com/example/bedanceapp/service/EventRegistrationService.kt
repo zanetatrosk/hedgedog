@@ -6,6 +6,7 @@ import com.example.bedanceapp.model.EventRegistrationCount
 import com.example.bedanceapp.model.RegistrationProfile
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.DancerRoleRepository
+import com.example.bedanceapp.repository.EventRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -13,7 +14,8 @@ import java.util.UUID
 @Service
 class EventRegistrationService(
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val dancerRoleRepository: DancerRoleRepository
+    private val dancerRoleRepository: DancerRoleRepository,
+    private val eventRepository: EventRepository
 ) {
 
     fun getDancers(eventRegistrations: List<EventRegistration>): List<AttendingUsersDTO>{
@@ -95,6 +97,14 @@ class EventRegistrationService(
         roleId: UUID?,
         paid: Boolean = false
     ): EventRegistration {
+        // Check if user is the organizer of this event
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        if (event.organizerId == userId) {
+            throw IllegalArgumentException("Event organizer cannot register for their own event")
+        }
+
         // Validate status
         val validStatuses = listOf("interested", "going", "waitlisted")
         if (status !in validStatuses) {
@@ -103,7 +113,7 @@ class EventRegistrationService(
 
         // Check if user already has a registration for this event
         val existingRegistrations = eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)
-        val existing = existingRegistrations.lastOrNull();
+        val existing = existingRegistrations.lastOrNull()
 
         // Get role - use provided roleId or default to null
         val role = if (roleId != null) {

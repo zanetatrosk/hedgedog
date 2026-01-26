@@ -67,7 +67,7 @@ class EventService(
     }
 
     private fun mapEventToDto(event: Event, userId: UUID?): EventDto {
-        val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
+        val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
         // Build address string from location
         val eventId = event.id
         val countEventRegistration = eventRegistrationService.getRegistrationRolesCountsByEventId(eventId, "going")
@@ -139,7 +139,7 @@ class EventService(
                 currency = event.currency?.code,
                 endDate = endDate,
                 recurringDates = recurringDates,
-                organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.username, event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
+                organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
                 status = event.status.name,
                 statusUser = statusUser?.status
             ),

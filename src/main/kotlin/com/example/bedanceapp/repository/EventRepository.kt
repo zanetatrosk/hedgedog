@@ -19,6 +19,8 @@ interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor
 
     fun findByParentEventId(parentEventId: UUID): List<Event>
 
+    fun findByOrganizerId(organizerId: UUID): List<Event>
+
     fun findByOrganizerId(organizerId: UUID, pageable: Pageable): Page<Event>
 
     fun findByOrganizerIdAndStatus(organizerId: UUID, status: EventStatus, pageable: Pageable): Page<Event>

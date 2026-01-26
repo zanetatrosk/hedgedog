@@ -28,13 +28,13 @@ DROP TABLE IF EXISTS locations CASCADE;
 -- Users table
 CREATE TABLE users (
                        id UUID NOT NULL DEFAULT gen_random_uuid(),
-                       username VARCHAR(100) NOT NULL UNIQUE,
                        email VARCHAR(255) NOT NULL UNIQUE,
+                       provider VARCHAR(50) NOT NULL,
+                       provider_id VARCHAR(255) NOT NULL,
                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                       last_login_at TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE users ADD CONSTRAINT pk_users PRIMARY KEY (id);
-ALTER TABLE users ADD CONSTRAINT uc_users_username UNIQUE (username);
 
 -- User profiles table
 CREATE TABLE user_profiles (
@@ -200,11 +200,10 @@ CREATE TABLE events_skill_levels (
 );
 ALTER TABLE events_skill_levels ADD CONSTRAINT pk_events_skill_levels PRIMARY KEY (event_id, skill_level_id);
 
--- Junction table: user_profiles <-> dance_styles (tracks interest and optional skill level)
+-- Junction table: user_profiles <-> dance_styles (tracks dance style interest)
 CREATE TABLE user_dance_styles (
                                    user_id UUID NOT NULL,
                                    dance_style_id UUID NOT NULL,
-                                   skill_level_id UUID,
                                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -261,7 +260,6 @@ ALTER TABLE events_skill_levels ADD CONSTRAINT fk_events_skill_levels_skill_leve
 
 ALTER TABLE user_dance_styles ADD CONSTRAINT fk_user_dance_styles_users FOREIGN KEY (user_id) REFERENCES user_profiles (user_id) ON DELETE CASCADE;
 ALTER TABLE user_dance_styles ADD CONSTRAINT fk_user_dance_styles_dance_styles FOREIGN KEY (dance_style_id) REFERENCES dance_styles (id) ON DELETE CASCADE;
-ALTER TABLE user_dance_styles ADD CONSTRAINT fk_user_dance_styles_skill_levels FOREIGN KEY (skill_level_id) REFERENCES skill_levels (id) ON DELETE SET NULL;
 
 ALTER TABLE events_media ADD CONSTRAINT fk_events_media_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
 ALTER TABLE events_media ADD CONSTRAINT fk_events_media_media FOREIGN KEY (media_id) REFERENCES media (id) ON DELETE CASCADE;
@@ -368,12 +366,12 @@ SELECT id INTO v_type_party FROM event_type WHERE name = 'Party' LIMIT 1;
 SELECT id INTO v_type_class FROM event_type WHERE name = 'Class' LIMIT 1;
 
 -- 2. Create Users
-INSERT INTO users (username, email) VALUES
-    ('alice_dancer', 'alice@example.com') RETURNING id INTO v_user_alice;
-INSERT INTO users (username, email) VALUES
-    ('bob_moves', 'bob@example.com') RETURNING id INTO v_user_bob;
-INSERT INTO users (username, email) VALUES
-    ('charlie_steps', 'charlie@example.com') RETURNING id INTO v_user_charlie;
+INSERT INTO users (email, provider, provider_id) VALUES
+    ('alice@example.com', 'google', 'google_alice_123') RETURNING id INTO v_user_alice;
+INSERT INTO users (email, provider, provider_id) VALUES
+    ('bob@example.com', 'google', 'google_bob_456') RETURNING id INTO v_user_bob;
+INSERT INTO users (email, provider, provider_id) VALUES
+    ('charlie@example.com', 'google', 'google_charlie_789') RETURNING id INTO v_user_charlie;
 
 -- 3. Create User Profiles
 INSERT INTO user_profiles (user_id, first_name, last_name, bio, role_id, general_skill_level_id, city, country) VALUES
@@ -393,7 +391,7 @@ INSERT INTO events (
     event_date, event_time, status
 ) VALUES (
              v_user_alice, 'Summer Bachata Night', 'Open air dancing by the river.', v_loc_river_bar,
-             CURRENT_DATE + INTERVAL '5 days', '20:00', 'published'
+             CURRENT_DATE + INTERVAL '5 days', '20:00', 'PUBLISHED'
          ) RETURNING id INTO v_event_party;
 
 -- Link styles and types
@@ -410,7 +408,7 @@ FOR i IN 0..3 LOOP
             event_date, event_time, status
         ) VALUES (
             v_event_parent, v_user_alice, 'Weekly Salsa Foundations (Week ' || (i+1) || ')', 'Learn the basics every Tuesday.', v_loc_studio,
-            CURRENT_DATE + INTERVAL '2 days' + (i * 7 || ' days')::INTERVAL, '18:00', 'published'
+            CURRENT_DATE + INTERVAL '2 days' + (i * 7 || ' days')::INTERVAL, '18:00', 'PUBLISHED'
         ) RETURNING id INTO v_event_child;
 
 INSERT INTO dance_styles_events (dance_style_id, event_id) VALUES (v_style_salsa, v_event_child);

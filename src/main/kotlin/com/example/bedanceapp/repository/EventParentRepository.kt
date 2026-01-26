@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface EventParentRepository : JpaRepository<EventParent, UUID>
+interface EventParentRepository : JpaRepository<EventParent, UUID>{
+}
 

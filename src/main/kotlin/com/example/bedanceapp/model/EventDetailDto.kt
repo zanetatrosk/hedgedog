@@ -57,4 +57,9 @@ data class CodebookItem (
     val name: String,
 )
 
+enum class UserStatus {
+    INTERESTED,
+    GOING,
+    WAITLISTED
+}
 

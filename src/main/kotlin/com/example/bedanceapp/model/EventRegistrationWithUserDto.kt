@@ -7,7 +7,7 @@ data class EventRegistrationWithUserDto(
     val id: UUID?,
     val eventId: UUID,
     val userId: UUID,
-    val status: String,
+    val status: UserStatus,
     val role: DancerRoleDto?,
     val paid: Boolean,
     val userProfile: UserProfileDto?,
@@ -22,7 +22,6 @@ data class DancerRoleDto(
 
 data class UserProfileDto(
     val userId: UUID,
-    val username: String?,
     val email: String?,
     val firstName: String?,
     val lastName: String?,
