@@ -31,6 +31,10 @@ CREATE TABLE users (
                        email VARCHAR(255) NOT NULL UNIQUE,
                        provider VARCHAR(50) NOT NULL,
                        provider_id VARCHAR(255) NOT NULL,
+                       google_access_token VARCHAR(2048),
+                       google_refresh_token VARCHAR(512),
+                       google_token_expiry TIMESTAMP WITH TIME ZONE,
+                       google_scopes VARCHAR(1024),
                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                        last_login_at TIMESTAMP WITH TIME ZONE
 );

@@ -9,7 +9,7 @@ import java.util.UUID
 data class UserProfile(
     @Id
     @Column(name = "user_id")
-    val userId: UUID,
+    var userId: UUID? = null,
 
     @OneToOne
     @MapsId
@@ -59,4 +59,8 @@ data class UserProfile(
 
     @Column(name = "updated_at")
     val updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    override fun toString(): String {
+        return "UserProfile(userId=$userId, firstName=$firstName, lastName=$lastName, city=$city, country=$country)"
+    }
+}

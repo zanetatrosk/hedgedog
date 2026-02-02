@@ -20,6 +20,18 @@ data class User(
     @Column(name = "provider_id", nullable = false)
     val providerId: String,
 
+    @Column(name = "google_access_token", length = 2048)
+    var googleAccessToken: String? = null,
+
+    @Column(name = "google_refresh_token", length = 512)
+    var googleRefreshToken: String? = null,
+
+    @Column(name = "google_token_expiry")
+    var googleTokenExpiry: OffsetDateTime? = null,
+
+    @Column(name = "google_scopes", length = 1024)
+    var googleScopes: String? = null,
+
     @OneToOne(mappedBy = "user", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     val profile: UserProfile? = null,
 
@@ -27,5 +39,9 @@ data class User(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column(name = "last_login_at")
-    val lastLoginAt: OffsetDateTime? = null
-)
+    var lastLoginAt: OffsetDateTime? = null
+) {
+    override fun toString(): String {
+        return "User(id=$id, email='$email', provider='$provider', providerId='$providerId', createdAt=$createdAt)"
+    }
+}
