@@ -93,7 +93,9 @@ class EventService(
             interested = countInterested,
             promoMedia = mediaService.mapToDTO(event.promoMedia),
             registrationStatus = registrationStatus,
-            status = event.status
+            status = event.status,
+            registrationType = event.registrationMode,
+            formId = event.formId
         )
     }
 
@@ -141,7 +143,9 @@ class EventService(
                 recurringDates = recurringDates,
                 organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
                 status = event.status.name,
-                statusUser = statusUser?.status
+                statusUser = statusUser?.status,
+                registrationType = event.registrationMode,
+                formId = event.formId
             ),
             additionalDetails = EventDetailAdditionalDetails(
                 danceStyles = event.danceStyles.map { CodebookItem(it.id.toString(), it.name) },
@@ -279,6 +283,8 @@ class EventService(
         }
 
         // Build event (create new or update existing)
+        // Note: registrationMode, formId, allowWaitlist, and requireApproval are set to defaults
+        // These can only be changed when publishing the event
         return Event(
             id = existingEventId,
             parentEventId = parentId,
@@ -291,8 +297,7 @@ class EventService(
             currency = currency,
             price = request.basicInfo.price,
             maxAttendees = request.additionalDetails?.maxAttendees,
-            allowWaitlist = request.additionalDetails?.allowWaitlist ?: false,
-            allowPartnerPairing = request.additionalDetails?.allowPartnerPairing ?: false,
+            requireApproval = false,  // Default: cannot be set via POST/PUT
             status = status ?: EventStatus.DRAFT,
             danceStyles = danceStyles,
             skillLevels = skillLevels,
@@ -328,7 +333,7 @@ class EventService(
     }
 
     @Transactional
-    fun publishEvent(eventId: UUID, organizerId: UUID): Event {
+    fun publishEvent(eventId: UUID, organizerId: UUID, publishRequest: PublishEventRequest? = null): Event {
         val event = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 
@@ -342,8 +347,33 @@ class EventService(
             throw IllegalArgumentException("Only draft events can be published. Current status: ${event.status}")
         }
 
-        // Update status to published
-        val updatedEvent = event.copy(status = EventStatus.PUBLISHED, updatedAt = java.time.LocalDateTime.now())
+        // Parse and validate registration mode if provided
+        val registrationMode = publishRequest?.registrationMode?.let {
+            try {
+                RegistrationMode.valueOf(it.name)
+            } catch (e: IllegalArgumentException) {
+                throw IllegalArgumentException("Invalid registration mode: ${it.name}")
+            }
+        } ?: event.registrationMode
+
+        // Validate formId is provided when registrationMode is GOOGLE_FORM
+        val formId = publishRequest?.formId ?: event.formId
+        if (registrationMode == RegistrationMode.GOOGLE_FORM && formId.isNullOrBlank()) {
+            throw IllegalArgumentException("Form ID is required when registration mode is GOOGLE_FORM")
+        }
+
+        val requireApproval = publishRequest?.requireApproval ?: event.requireApproval
+        val allowWaitlist = publishRequest?.allowWaitlist ?: event.allowWaitlist
+
+        // Update status to published with new registration settings
+        val updatedEvent = event.copy(
+            status = EventStatus.PUBLISHED,
+            registrationMode = registrationMode,
+            formId = formId,
+            requireApproval = requireApproval,
+            allowWaitlist = allowWaitlist,
+            updatedAt = java.time.LocalDateTime.now()
+        )
         return eventRepository.save(updatedEvent)
     }
 

@@ -37,8 +37,9 @@ data class AdditionalDetailsRequest(
     val skillLevel: List<UUID>,       // List of skill level IDs
     val typeOfEvent: List<UUID>,      // List of event type IDs
     val maxAttendees: Int?,
-    val allowWaitlist: Boolean,
     val allowPartnerPairing: Boolean
+    // Note: registrationMode, formId, allowWaitlist, and requireApproval
+    // can only be set when publishing the event via PATCH /api/events/{id}/publish
 )
 
 data class EventMedia(

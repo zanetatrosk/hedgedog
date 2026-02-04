@@ -7,6 +7,7 @@ import com.example.bedanceapp.model.EventDto
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.PagedResponse
+import com.example.bedanceapp.model.PublishEventRequest
 import com.example.bedanceapp.service.EventService
 import com.example.bedanceapp.service.EventRegistrationService
 import org.springframework.data.domain.PageRequest
@@ -160,10 +161,11 @@ class EventController(
     @PatchMapping("/{eventId}/publish")
     fun publishEvent(
         @PathVariable eventId: UUID,
-        @RequestHeader("X-User-Id") organizerId: UUID
+        @RequestHeader("X-User-Id") organizerId: UUID,
+        @RequestBody request: PublishEventRequest,
     ): ResponseEntity<EventStatusResponse> {
         return try {
-            val event = eventService.publishEvent(eventId, organizerId)
+            val event = eventService.publishEvent(eventId, organizerId, request)
             ResponseEntity.ok(
                 EventStatusResponse(
                     id = event.id,
@@ -248,4 +250,12 @@ data class EventStatusResponse(
     val message: String
 )
 
+enum class RegistrationStatus {
+    GOING,
+    INTERESTED,
+    WAITLISTED,
+    CANCELLED,
+    REJECTED,
+    PENDING
+}
 

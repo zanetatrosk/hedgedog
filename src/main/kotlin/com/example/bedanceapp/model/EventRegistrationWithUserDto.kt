@@ -1,5 +1,6 @@
 package com.example.bedanceapp.model
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -7,7 +8,7 @@ data class EventRegistrationWithUserDto(
     val id: UUID?,
     val eventId: UUID,
     val userId: UUID,
-    val status: UserStatus,
+    val status: RegistrationStatus,
     val role: DancerRoleDto?,
     val paid: Boolean,
     val userProfile: UserProfileDto?,

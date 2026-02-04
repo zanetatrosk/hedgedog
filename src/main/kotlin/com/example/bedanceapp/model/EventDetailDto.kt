@@ -24,7 +24,9 @@ data class EventDetailBasicInfo(
     val organizer: OrganizerDto,
     val recurringDates: List<RecurringDateInfo>,
     val status: String,  // "Past", "Scheduled", "Cancelled"
-    val statusUser: String?  // "Joined", "Interested", null
+    val statusUser: String?,  // "Joined", "Interested", null
+    val registrationType: RegistrationMode,
+    val formId: String? = null,
 )
 
 data class RecurringDateInfo(
@@ -57,9 +59,4 @@ data class CodebookItem (
     val name: String,
 )
 
-enum class UserStatus {
-    INTERESTED,
-    GOING,
-    WAITLISTED
-}
 
