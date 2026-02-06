@@ -8,8 +8,10 @@ import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.PagedResponse
 import com.example.bedanceapp.model.PublishEventRequest
+import com.example.bedanceapp.service.EventRegistrationDataService
 import com.example.bedanceapp.service.EventService
 import com.example.bedanceapp.service.EventRegistrationService
+import com.example.bedanceapp.service.StatsResponse
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -22,7 +24,8 @@ import java.util.UUID
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
 class EventController(
     private val eventService: EventService,
-    private val eventRegistrationService: EventRegistrationService
+    private val eventRegistrationService: EventRegistrationService,
+    private val eventRegistrationDataService: EventRegistrationDataService
 ) {
 
     @GetMapping
@@ -99,6 +102,16 @@ class EventController(
     ): ResponseEntity<EventDetailData> {
         val eventDetail = eventService.getEventDetailById(id, userId)
         return ResponseEntity.ok(eventDetail)
+    }
+
+    /**
+     * Get statistics for an event including registration data
+     * GET /api/events/{id}/stats
+     */
+    @GetMapping("/{id}/stats")
+    fun getEventStats(@PathVariable id: UUID): ResponseEntity<StatsResponse> {
+        val stats = eventRegistrationDataService.getAllStatsByEvent(id)
+        return ResponseEntity.ok(stats)
     }
 
     /**

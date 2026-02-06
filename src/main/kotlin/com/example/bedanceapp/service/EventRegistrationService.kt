@@ -1,9 +1,7 @@
 package com.example.bedanceapp.service
 
-import com.example.bedanceapp.model.AttendingUsersDTO
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationCount
-import com.example.bedanceapp.model.RegistrationProfile
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRepository
@@ -18,32 +16,6 @@ class EventRegistrationService(
     private val eventRepository: EventRepository
 ) {
 
-    fun getDancers(eventRegistrations: List<EventRegistration>): List<AttendingUsersDTO>{
-        val pairsRoleUsers = dancerRoleRepository.findAll().map { Pair(it.name, mutableListOf<RegistrationProfile>())  }
-        val mapRoleToUsers = pairsRoleUsers.toMap().toMutableMap()
-        for (registration in eventRegistrations) {
-            mapRoleToUsers[registration.role.name]?.add(
-                RegistrationProfile(
-                    name = registration.userId.toString(),
-                    role = registration.role.name,
-                    avatar = null,
-                    linkToProfile = registration.userId.toString()
-                )
-            )
-        }
-        val result = mutableListOf<AttendingUsersDTO>()
-        for (pair in mapRoleToUsers) {
-            result.add(
-                AttendingUsersDTO(
-                    role = pair.key,
-                    count = pair.value.size,
-                    attending = pair.value
-                )
-            )
-        }
-        return result
-    }
-
     @Transactional(readOnly = true)
     fun getRegistrationRolesCountsByEventId(eventId: UUID?, state: String): EventRegistrationCount {
         if (eventId == null) {
@@ -53,7 +25,7 @@ class EventRegistrationService(
         val roles = dancerRoleRepository.findAll().map { Pair(it.name, 0)  }
         val rolesCount = roles.toMap().toMutableMap()
         for (registration in eventRegistrations) {
-            rolesCount[registration.role.name]?.plus(1)
+            rolesCount[registration.role.name] = (rolesCount[registration.role.name]?.plus(1) ?: 0)
         }
         return EventRegistrationCount(eventRegistrations.size, rolesCount["Leader"] ?: 0, rolesCount["Follower"] ?: 0)
     }
@@ -154,6 +126,4 @@ class EventRegistrationService(
         registrations.forEach { eventRegistrationRepository.delete(it) }
         return true
     }
-
 }
-

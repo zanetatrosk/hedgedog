@@ -111,17 +111,7 @@ class EventService(
         val interestedCount = eventRegistrationService.getRegistrationCountByEventId(eventId, "interested")
         // Handle recurring dates if this event has a parent
         val parentEventId = event.parentEventId
-        val recurringDates = if (parentEventId != null) {
-            val siblingEvents = eventRepository.findByParentEventId(parentEventId)
-            siblingEvents.map { sibling ->
-                RecurringDateInfo(
-                    date = sibling.eventDate.toString(),
-                    id = sibling.id.toString()
-                )
-            }.sortedBy { it.date }
-        } else {
-            emptyList()
-        }
+        val recurringDates = getUpcomingDates(parentEventId)
 
         // Get end date for recurring events
         val endDate = if (recurringDates.isNotEmpty()) {
@@ -315,6 +305,20 @@ class EventService(
             currentDate = currentDate.plusDays(7)
             }
         return dates
+    }
+
+    fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {
+        if (parentEventId == null) {
+            return emptyList()
+        }
+        val siblingEvents = eventRepository.findByParentEventId(parentEventId)
+        return siblingEvents.map { sibling ->
+            RecurringDateInfo(
+                date = sibling.eventDate.toString(),
+                id = sibling.id.toString()
+            )
+        }.sortedBy { it.date }
+
     }
     @Transactional
     fun createEventByOccurrence(request: CreateEventRequest, organizerId: UUID): List<Event> {

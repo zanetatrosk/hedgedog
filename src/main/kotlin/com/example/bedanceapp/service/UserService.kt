@@ -53,7 +53,7 @@ class UserService(
         } else null
 
         // Get skill level
-        val levelId = profile.generalSkillLevelId
+        val levelId = profile.generalSkillLevel?.id
         val level = if (levelId != null) {
             skillLevelRepository.findById(levelId).map {
                 CodebookItem(it.id.toString(), it.name)
@@ -109,7 +109,9 @@ class UserService(
             lastName = request.lastName ?: existingProfile?.lastName,
             bio = request.bio ?: existingProfile?.bio,
             roleId = request.role?.id?.let { UUID.fromString(it) } ?: existingProfile?.roleId,
-            generalSkillLevelId = request.level?.id?.let { UUID.fromString(it) } ?: existingProfile?.generalSkillLevelId,
+            generalSkillLevel = request.level?.id?.let {
+                skillLevelRepository.findById(UUID.fromString(it)).orElse(null)
+            } ?: existingProfile?.generalSkillLevel,
             city = existingProfile?.city,
             country = existingProfile?.country,
             avatarMediaId = request.avatar?.id ?: existingProfile?.avatarMediaId,

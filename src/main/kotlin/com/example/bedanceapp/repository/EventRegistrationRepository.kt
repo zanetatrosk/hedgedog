@@ -17,4 +17,11 @@ interface EventRegistrationRepository : JpaRepository<EventRegistration, UUID> {
     fun findByEventIdAndUserId(eventId: UUID, userId: UUID): List<EventRegistration>
 
     fun findByEventIdAndStatus(eventId: UUID, status: String): List<EventRegistration>
+
+    /**
+     * Find all registrations for an event excluding INTERESTED status
+     * This returns only users who are actually registered (GOING, WAITLISTED, etc.)
+     */
+    @Query("SELECT er FROM EventRegistration er WHERE er.eventId = :eventId AND er.status != 'INTERESTED'")
+    fun findRegisteredUsersByEventId(@Param("eventId") eventId: UUID): List<EventRegistration>
 }

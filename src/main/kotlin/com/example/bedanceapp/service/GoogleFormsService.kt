@@ -3,14 +3,14 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.repository.UserRepository
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.forms.v1.Forms
 import com.google.api.services.forms.v1.model.Form
 import com.google.api.services.forms.v1.model.ListFormResponsesResponse
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
-import java.util.*
 
 /**
  * Service for interacting with Google Forms API
@@ -22,7 +22,9 @@ class GoogleFormsService(
     private val googleOAuth2Service: GoogleOAuth2Service
 ) {
 
-    private val httpTransport = NetHttpTransport()
+    private val logger = LoggerFactory.getLogger(GoogleFormsService::class.java)
+
+    private val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val jsonFactory = GsonFactory.getDefaultInstance()
 
     /**
@@ -35,11 +37,7 @@ class GoogleFormsService(
         }
     }
 
-    /**
-     * Get Google Forms service with user credentials
-     */
     private fun getFormsService(user: User): Forms {
-        // Check if token is expired and refresh if needed
         val accessToken = if (isTokenExpired(user)) {
             refreshUserToken(user)
         } else {
@@ -57,9 +55,9 @@ class GoogleFormsService(
      * Get a specific form by ID
      */
     fun getForm(user: User, formId: String): Form {
-        if (!hasFormsAccess(user)) {
-            throw IllegalStateException("User has not granted Google Forms access")
-        }
+//        if (!hasFormsAccess(user)) {
+//            throw IllegalStateException("User has not granted Google Forms access")
+//        }
 
         val formsService = getFormsService(user)
         return formsService.forms().get(formId).execute()
@@ -88,7 +86,6 @@ class GoogleFormsService(
 
         val tokenResponse = googleOAuth2Service.refreshAccessToken(user.googleRefreshToken!!)
 
-        // Update user with new access token
         val updatedUser = user.copy(
             googleAccessToken = tokenResponse.accessToken,
             googleTokenExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.expiresInSeconds)
@@ -98,4 +95,3 @@ class GoogleFormsService(
         return tokenResponse.accessToken
     }
 }
-

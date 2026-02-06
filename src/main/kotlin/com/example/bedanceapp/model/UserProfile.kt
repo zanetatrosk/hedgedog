@@ -28,8 +28,9 @@ data class UserProfile(
     @Column(name = "role_id")
     val roleId: UUID? = null,
 
-    @Column(name = "general_skill_level_id")
-    val generalSkillLevelId: UUID? = null,
+    @OneToOne
+    @JoinColumn(name = "general_skill_level_id")
+    val generalSkillLevel: SkillLevel? = null,
 
     @Column(name = "avatar_media_id")
     val avatarMediaId: UUID? = null,
