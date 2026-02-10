@@ -36,9 +36,8 @@ data class AdditionalDetailsRequest(
     val danceStyles: List<UUID>,      // List of dance style IDs
     val skillLevel: List<UUID>,       // List of skill level IDs
     val typeOfEvent: List<UUID>,      // List of event type IDs
-    val maxAttendees: Int?,
-    val allowPartnerPairing: Boolean
-    // Note: registrationMode, formId, allowWaitlist, and requireApproval
+    val maxAttendees: Int?
+    // Note: registrationMode, formId, allowWaitlist, allowPartnerPairing, and requireApproval
     // can only be set when publishing the event via PATCH /api/events/{id}/publish
 )
 

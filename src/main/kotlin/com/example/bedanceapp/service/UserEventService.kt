@@ -1,5 +1,6 @@
 package com.example.bedanceapp.service
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.*
 import com.example.bedanceapp.model.StatusFilter
 import com.example.bedanceapp.repository.EventParentRepository
@@ -29,9 +30,9 @@ class UserEventService(
         // Get all registrations for the user
         val allRegistrations = eventRegistrationRepository.findByUserId(userId)
         // Separate registrations by status
-        val goingRegistrations = allRegistrations.filter { it.status == "going" }
-        val waitlistedRegistrations = allRegistrations.filter { it.status == "waitlisted" }
-        val interestedRegistrations = allRegistrations.filter { it.status == "interested" }
+        val goingRegistrations = allRegistrations.filter { it.status == RegistrationStatus.GOING }
+        val waitlistedRegistrations = allRegistrations.filter { it.status == RegistrationStatus.WAITLISTED }
+        val interestedRegistrations = allRegistrations.filter { it.status == RegistrationStatus.INTERESTED }
 
         // Filter based on the filter parameter (JOINING filter is not in enum but used in API)
         // We need to handle it as a special case if passed from frontend
@@ -132,13 +133,14 @@ class UserEventService(
     }
 
     private fun mapToSingleEventDTO(event: Event, userStatus: RsvpStatus?): SingleEventDTO {
+        val stats = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, RegistrationStatus.GOING)
         val attendeeStats = AttendeeStats(
             going = RegistrationStats(
-                total = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, "going").total,
-                leaders = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, "going").leaders,
-                followers = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, "going").followers
+                total = stats.total,
+                leaders = stats.leaders,
+                followers = stats.followers
             ),
-            interested = eventRegistrationService.getRegistrationCountByEventId(event.id, "interested")
+            interested = eventRegistrationService.getRegistrationCountByEventId(event.id, RegistrationStatus.INTERESTED)
         )
 
         return SingleEventDTO(

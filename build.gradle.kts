@@ -33,6 +33,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("tools.jackson.core:jackson-databind")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("io.minio:minio:8.5.7")
     implementation("com.google.api-client:google-api-client:2.2.0")

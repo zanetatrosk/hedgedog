@@ -7,10 +7,10 @@ import java.util.UUID
 data class EventRegistrationWithUserDto(
     val id: UUID?,
     val eventId: UUID,
-    val userId: UUID,
+    val userId: UUID?,
     val status: RegistrationStatus,
     val role: DancerRoleDto?,
-    val paid: Boolean,
+    val email: String,
     val userProfile: UserProfileDto?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime

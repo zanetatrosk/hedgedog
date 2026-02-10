@@ -41,8 +41,8 @@ class CoupleModeRegistrationStrategy(
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
             RegistrationDataDto(RegistrationHeaders.EXPERIENCE.id, registration.user?.profile?.generalSkillLevel?.name ?: ""),
-            RegistrationDataDto(RegistrationHeaders.STATUS.id, registration.status),
-            RegistrationDataDto(CoupleHeaders.ROLE.id, registration.role.name),
+            RegistrationDataDto(RegistrationHeaders.STATUS.id, registration.status.toString()),
+            RegistrationDataDto(CoupleHeaders.ROLE.id, registration.role?.name ?: ""),
             // TODO: Add partner data when implementing partner matching
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )

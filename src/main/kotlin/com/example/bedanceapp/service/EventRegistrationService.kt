@@ -1,10 +1,12 @@
 package com.example.bedanceapp.service
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationCount
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRepository
+import com.example.bedanceapp.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -13,11 +15,12 @@ import java.util.UUID
 class EventRegistrationService(
     private val eventRegistrationRepository: EventRegistrationRepository,
     private val dancerRoleRepository: DancerRoleRepository,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val userRepository: UserRepository
 ) {
 
     @Transactional(readOnly = true)
-    fun getRegistrationRolesCountsByEventId(eventId: UUID?, state: String): EventRegistrationCount {
+    fun getRegistrationRolesCountsByEventId(eventId: UUID?, state: RegistrationStatus): EventRegistrationCount {
         if (eventId == null) {
             return EventRegistrationCount(0, 0, 0)
         }
@@ -25,12 +28,14 @@ class EventRegistrationService(
         val roles = dancerRoleRepository.findAll().map { Pair(it.name, 0)  }
         val rolesCount = roles.toMap().toMutableMap()
         for (registration in eventRegistrations) {
-            rolesCount[registration.role.name] = (rolesCount[registration.role.name]?.plus(1) ?: 0)
+            registration.role?.name?.let { roleName ->
+                rolesCount[roleName] = (rolesCount[roleName]?.plus(1) ?: 0)
+            }
         }
         return EventRegistrationCount(eventRegistrations.size, rolesCount["Leader"] ?: 0, rolesCount["Follower"] ?: 0)
     }
 
-    fun getRegistrationCountByEventId(eventId: UUID?, state: String): Int {
+    fun getRegistrationCountByEventId(eventId: UUID?, state: RegistrationStatus): Int {
         if (eventId == null) {
             return 0
         }
@@ -65,9 +70,9 @@ class EventRegistrationService(
     fun registerUserForEvent(
         eventId: UUID,
         userId: UUID,
-        status: String,
+        status: RegistrationStatus,
         roleId: UUID?,
-        paid: Boolean = false
+        email: String?
     ): EventRegistration {
         // Check if user is the organizer of this event
         val event = eventRepository.findById(eventId)
@@ -78,9 +83,13 @@ class EventRegistrationService(
         }
 
         // Validate status
-        val validStatuses = listOf("interested", "going", "waitlisted")
-        if (status !in validStatuses) {
-            throw IllegalArgumentException("Invalid status. Must be one of: ${validStatuses.joinToString()}")
+        val validStatuses = listOf(RegistrationStatus.entries.toTypedArray())
+
+        // Get user email - use provided email or fetch from user profile
+        val userEmail = email ?: run {
+            val user = userRepository.findById(userId)
+                .orElseThrow { IllegalArgumentException("User not found with id: $userId") }
+            user.email
         }
 
         // Check if user already has a registration for this event
@@ -102,9 +111,10 @@ class EventRegistrationService(
             eventId = eventId,
             userId = userId,
             status = status,
-            roleId = role.id!!,
+            roleId = role.id,
             role = role,
-            paid = paid
+            email = userEmail,
+            formResponses = null
         )
 
         return eventRegistrationRepository.save(registration)

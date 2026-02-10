@@ -1,5 +1,6 @@
 package com.example.bedanceapp.service.registration
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.service.*
 import java.util.UUID
@@ -25,7 +26,14 @@ data class Header(
 data class RegistrationRow(
     val id: String,
     val user: RegistrationUserDto,
-    val data: List<RegistrationDataDto>
+    val data: List<RegistrationDataDto>,
+    val lastSubmittedTime: String? = null,
+    val status: RegistrationStatus
+)
+
+data class RowStructure (
+    val data: List<RegistrationDataDto>,
+    val lastSubmittedTime: String? = null
 )
 
 data class RegistrationUserDto(
@@ -42,6 +50,11 @@ enum class FormQuestionType {
     SET,
     TEXT
 }
+
+data class StructuredForm (
+    val revisionId: String,
+    val headers: List<Header>,
+)
 
 /**
  * Common headers used across registration modes

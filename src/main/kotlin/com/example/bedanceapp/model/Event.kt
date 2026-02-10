@@ -22,7 +22,7 @@ data class Event(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", insertable = false, updatable = false)
-    val organizer: User? = null,
+    val organizer: User,
 
     @Column(name = "event_name", nullable = false)
     val eventName: String,
@@ -52,22 +52,6 @@ data class Event(
 
     @Column(name = "max_attendees")
     val maxAttendees: Int? = null,
-
-    @Column(name = "allow_waitlist", nullable = false)
-    val allowWaitlist: Boolean = false,
-
-    @Column(name = "allow_partner_pairing", nullable = false)
-    val allowPartnerPairing: Boolean = false,
-
-    @Column(name = "registration_mode", nullable = false)
-    @Enumerated(EnumType.STRING)
-    val registrationMode: RegistrationMode = RegistrationMode.OPEN,
-
-    @Column(name = "form_id")
-    val formId: String? = null,
-
-    @Column(name = "require_approval", nullable = false)
-    val requireApproval: Boolean = false,
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -119,10 +103,4 @@ data class Event(
     val media: MutableList<Media> = mutableListOf()
 
 )
-
-enum class RegistrationMode {
-    COUPLE,
-    OPEN,
-    GOOGLE_FORM
-}
 

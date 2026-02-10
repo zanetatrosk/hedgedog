@@ -1,5 +1,6 @@
 package com.example.bedanceapp.model
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import java.math.BigDecimal
 
 data class EventDetailData(
@@ -24,7 +25,7 @@ data class EventDetailBasicInfo(
     val organizer: OrganizerDto,
     val recurringDates: List<RecurringDateInfo>,
     val status: String,  // "Past", "Scheduled", "Cancelled"
-    val statusUser: String?,  // "Joined", "Interested", null
+    val statusUser: RegistrationStatus?,  // "Joined", "Interested", null
     val registrationType: RegistrationMode,
     val formId: String? = null,
 )

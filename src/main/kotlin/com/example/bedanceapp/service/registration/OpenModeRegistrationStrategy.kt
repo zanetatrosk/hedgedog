@@ -1,5 +1,6 @@
 package com.example.bedanceapp.service.registration
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository
@@ -43,7 +44,7 @@ open class OpenModeRegistrationStrategy(
     protected open fun getRegistrations(event: Event): List<RegistrationRow> {
         val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
         // Fetch only registered users, excluding those with INTERESTED status
-        val registrations = eventRegistrationRepository.findRegisteredUsersByEventId(eventId)
+        val registrations = eventRegistrationRepository.findByEventIdAndStatusNot(eventId, RegistrationStatus.INTERESTED)
 
         return registrations.map { registration ->
             mapRegistrationToRow(registration)
@@ -63,7 +64,8 @@ open class OpenModeRegistrationStrategy(
                 email = registration.user?.email ?: "",
                 userId = registration.user?.id
             ),
-            data = buildDataFields(registration, fullName)
+            data = buildDataFields(registration, fullName),
+            status = registration.status
         )
     }
 
@@ -75,7 +77,7 @@ open class OpenModeRegistrationStrategy(
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
             RegistrationDataDto(RegistrationHeaders.EXPERIENCE.id, registration.user?.profile?.generalSkillLevel?.name ?: ""),
-            RegistrationDataDto(RegistrationHeaders.STATUS.id, registration.status),
+            RegistrationDataDto(RegistrationHeaders.STATUS.id, registration.status.toString()),
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )
     }

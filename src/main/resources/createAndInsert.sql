@@ -1,7 +1,9 @@
 -- Remove conflicting tables
 DROP TABLE IF EXISTS dance_styles CASCADE;
 DROP TABLE IF EXISTS media CASCADE;
+DROP TABLE IF EXISTS registrations CASCADE;
 DROP TABLE IF EXISTS event_registration CASCADE;
+DROP TABLE IF EXISTS event_registration_settings CASCADE;
 DROP TABLE IF EXISTS event_type CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
@@ -136,11 +138,6 @@ CREATE TABLE events (
                         currency_code VARCHAR(3),
                         price DECIMAL(10, 2),
                         max_attendees INTEGER,
-                        allow_waitlist BOOLEAN NOT NULL DEFAULT false,
-                        allow_partner_pairing BOOLEAN NOT NULL DEFAULT false,
-                        registration_mode VARCHAR(20) NOT NULL DEFAULT 'OPEN',
-                        form_id VARCHAR(255),
-                        require_approval BOOLEAN NOT NULL DEFAULT false,
                         promo_media_id UUID,
                         status VARCHAR(20) NOT NULL,
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -148,6 +145,17 @@ CREATE TABLE events (
 );
 
 ALTER TABLE events ADD CONSTRAINT pk_events PRIMARY KEY (id);
+
+-- Event Registration Settings table (one-to-one with events)
+CREATE TABLE event_registration_settings (
+                                             event_id UUID PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
+                                             registration_mode VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+                                             form_id VARCHAR(255),
+                                             form_structure JSONB,
+                                             allow_waitlist BOOLEAN NOT NULL DEFAULT false,
+                                             allow_partner_pairing BOOLEAN NOT NULL DEFAULT false,
+                                             require_approval BOOLEAN NOT NULL DEFAULT false
+);
 
 
 -- Media table
@@ -160,18 +168,20 @@ CREATE TABLE media (
 ALTER TABLE media ADD CONSTRAINT pk_media PRIMARY KEY (id);
 
 -- Event registration/attendees table
-CREATE TABLE event_registration (
-                                    id UUID NOT NULL DEFAULT gen_random_uuid(),
-                                    event_id UUID NOT NULL,
-                                    user_id UUID NOT NULL,
-                                    role_id UUID,
-                                    status VARCHAR(20) NOT NULL DEFAULT 'going',
-                                    paid BOOLEAN NOT NULL DEFAULT false,
-                                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE registrations (
+                               id UUID NOT NULL DEFAULT gen_random_uuid(),
+                               event_id UUID NOT NULL,
+                               user_id UUID,
+                               role_id UUID,
+                               status VARCHAR(20) NOT NULL DEFAULT 'going',
+                               email VARCHAR(255) NOT NULL,
+                               response_id varchar(255),
+                               form_responses JSONB,
+                               created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                               updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-ALTER TABLE event_registration ADD CONSTRAINT pk_event_registration PRIMARY KEY (id);
-ALTER TABLE event_registration ADD CONSTRAINT uc_event_registration_user_event UNIQUE (event_id, user_id);
+ALTER TABLE registrations ADD CONSTRAINT pk_registrations PRIMARY KEY (id);
+ALTER TABLE registrations ADD CONSTRAINT uc_registrations_user_event UNIQUE (event_id, user_id);
 
 -- Notifications table
 CREATE TABLE notifications (
@@ -246,10 +256,10 @@ ALTER TABLE events ADD CONSTRAINT fk_events_currency FOREIGN KEY (currency_code)
 ALTER TABLE events ADD CONSTRAINT fk_events_promo_media FOREIGN KEY (promo_media_id) REFERENCES media (id) ON DELETE SET NULL;
 ALTER TABLE events ADD CONSTRAINT fk_events_location FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE SET NULL;
 
--- event_registration references
-ALTER TABLE event_registration ADD CONSTRAINT fk_event_registration_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
-ALTER TABLE event_registration ADD CONSTRAINT fk_event_registration_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
-ALTER TABLE event_registration ADD CONSTRAINT fk_event_registration_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
+-- registrations references
+ALTER TABLE registrations ADD CONSTRAINT fk_registrations_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
+ALTER TABLE registrations ADD CONSTRAINT fk_registrations_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+ALTER TABLE registrations ADD CONSTRAINT fk_registrations_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
 
 
 -- notifications references
@@ -277,8 +287,8 @@ CREATE INDEX idx_events_organizer ON events(organizer_id);
 CREATE INDEX idx_events_date ON events(event_date);
 CREATE INDEX idx_events_parent ON events(parent_event_id);
 CREATE INDEX idx_events_location ON events(location_id);
-CREATE INDEX idx_event_registration_event ON event_registration(event_id);
-CREATE INDEX idx_event_registration_user ON event_registration(user_id);
+CREATE INDEX idx_registrations_event ON registrations(event_id);
+CREATE INDEX idx_registrations_user ON registrations(user_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_user_dance_styles_user ON user_dance_styles(user_id);
 CREATE INDEX idx_user_dance_styles_dance ON user_dance_styles(dance_style_id);
@@ -424,8 +434,8 @@ END LOOP;
 
     -- 8. Add Registrations
     -- Bob goes to the party
-INSERT INTO event_registration (event_id, user_id, role_id, status) VALUES (v_event_party, v_user_bob, v_role_leader, 'going');
+INSERT INTO registrations (event_id, user_id, role_id, status, email) VALUES (v_event_party, v_user_bob, v_role_leader, 'going', 'bob@example.com');
 -- Charlie is interested in the party
-INSERT INTO event_registration (event_id, user_id, role_id, status) VALUES (v_event_party, v_user_charlie, v_role_leader, 'interested');
+INSERT INTO registrations (event_id, user_id, role_id, status, email) VALUES (v_event_party, v_user_charlie, v_role_leader, 'interested', 'charlie@example.com');
 
 END $$;

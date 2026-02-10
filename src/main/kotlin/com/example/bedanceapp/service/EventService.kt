@@ -1,5 +1,6 @@
 package com.example.bedanceapp.service
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.*
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.DanceStyleRepository
@@ -9,7 +10,10 @@ import com.example.bedanceapp.repository.MediaRepository
 import com.example.bedanceapp.repository.UserRepository
 import com.example.bedanceapp.repository.CurrencyRepository
 import com.example.bedanceapp.repository.EventParentRepository
+import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
+import com.example.bedanceapp.service.registration.GoogleFormRegistrationStrategy
 import com.example.bedanceapp.specification.EventSpecification
+import com.google.api.client.json.gson.GsonFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -31,7 +35,12 @@ class EventService(
     private val locationService: LocationService,
     private val eventParentRepository: EventParentRepository,
     private val eventRegistrationService: EventRegistrationService,
+    private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
+    private val googleFormsService: GoogleFormsService,
+    private val googleFormRegistrationStrategy: GoogleFormRegistrationStrategy,
 ) {
+
+    private val jsonFactory = GsonFactory.getDefaultInstance()
 
     fun getTags(event: Event): List<String> {
         val danceStyles = event.danceStyles.map { it.name }
@@ -70,13 +79,18 @@ class EventService(
         val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
         // Build address string from location
         val eventId = event.id
-        val countEventRegistration = eventRegistrationService.getRegistrationRolesCountsByEventId(eventId, "going")
-        val countInterested = eventRegistrationService.getRegistrationCountByEventId(eventId, "interested")
+        val countEventRegistration = eventRegistrationService.getRegistrationRolesCountsByEventId(eventId,
+            RegistrationStatus.GOING)
+        val countInterested = eventRegistrationService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
         val registrationStatus = if(userId != null && eventId != null) {
             eventRepository.findUserRegistrationStatus(eventId, userId)
         } else {
             null
         }
+
+        // Fetch registration settings (optional)
+        val registrationSettings = eventId?.let { eventRegistrationSettingsRepository.findByEventId(it) }
+
         return EventDto(
             id = eventId.toString(),
             organizer = organizer,
@@ -94,8 +108,8 @@ class EventService(
             promoMedia = mediaService.mapToDTO(event.promoMedia),
             registrationStatus = registrationStatus,
             status = event.status,
-            registrationType = event.registrationMode,
-            formId = event.formId
+            registrationType = registrationSettings?.registrationMode ?: RegistrationMode.OPEN,
+            formId = registrationSettings?.formId
         )
     }
 
@@ -107,8 +121,9 @@ class EventService(
         val statusUser = eventRegistrationService.getLastRegistrationByEventIdAndUserId(eventId, userId)
 
         // Get registration stats
-        val registrationCount = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, "going")
-        val interestedCount = eventRegistrationService.getRegistrationCountByEventId(eventId, "interested")
+        val registrationCount = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id,
+            RegistrationStatus.GOING)
+        val interestedCount = eventRegistrationService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
         // Handle recurring dates if this event has a parent
         val parentEventId = event.parentEventId
         val recurringDates = getUpcomingDates(parentEventId)
@@ -119,6 +134,9 @@ class EventService(
         } else {
             null
         }
+
+        // Fetch registration settings (optional)
+        val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
 
         return EventDetailData(
             id = event.id.toString(),
@@ -134,16 +152,16 @@ class EventService(
                 organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
                 status = event.status.name,
                 statusUser = statusUser?.status,
-                registrationType = event.registrationMode,
-                formId = event.formId
+                registrationType = registrationSettings?.registrationMode ?: RegistrationMode.OPEN,
+                formId = registrationSettings?.formId
             ),
             additionalDetails = EventDetailAdditionalDetails(
                 danceStyles = event.danceStyles.map { CodebookItem(it.id.toString(), it.name) },
                 skillLevel = event.skillLevels.map { CodebookItem(it.id.toString(), it.name) },
                 typeOfEvent = event.typesOfEvents.map { CodebookItem(it.id.toString(), it.name) },
                 maxAttendees = event.maxAttendees,
-                allowWaitlist = event.allowWaitlist,
-                allowPartnerPairing = event.allowPartnerPairing
+                allowWaitlist = registrationSettings?.allowWaitlist ?: false,
+                allowPartnerPairing = registrationSettings?.allowPartnerPairing ?: false
             ),
             description = event.description,
             coverImage = mediaService.mapToDTO(event.promoMedia),
@@ -272,9 +290,9 @@ class EventService(
                 .orElseThrow { IllegalArgumentException("Media not found with id: ${media.id}") }
         }
 
+        val organizer = userRepository.findById(organizerId)
+
         // Build event (create new or update existing)
-        // Note: registrationMode, formId, allowWaitlist, and requireApproval are set to defaults
-        // These can only be changed when publishing the event
         return Event(
             id = existingEventId,
             parentEventId = parentId,
@@ -287,13 +305,13 @@ class EventService(
             currency = currency,
             price = request.basicInfo.price,
             maxAttendees = request.additionalDetails?.maxAttendees,
-            requireApproval = false,  // Default: cannot be set via POST/PUT
             status = status ?: EventStatus.DRAFT,
             danceStyles = danceStyles,
             skillLevels = skillLevels,
             typesOfEvents = eventTypes,
             promoMediaId = request.coverImage?.id,
-            media = mediaList?.toMutableList() ?: mutableListOf()
+            media = mediaList?.toMutableList() ?: mutableListOf(),
+            organizer = organizer.get()
         )
     }
 
@@ -351,31 +369,47 @@ class EventService(
             throw IllegalArgumentException("Only draft events can be published. Current status: ${event.status}")
         }
 
+        // Get organizer user
+        val organizer = userRepository.findById(organizerId)
+            .orElseThrow { IllegalArgumentException("Organizer not found with id: $organizerId") }
+
         // Parse and validate registration mode if provided
-        val registrationMode = publishRequest?.registrationMode?.let {
-            try {
-                RegistrationMode.valueOf(it.name)
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("Invalid registration mode: ${it.name}")
-            }
-        } ?: event.registrationMode
+        val registrationMode = publishRequest?.registrationMode ?: RegistrationMode.OPEN
 
         // Validate formId is provided when registrationMode is GOOGLE_FORM
-        val formId = publishRequest?.formId ?: event.formId
+        val formId = publishRequest?.formId
         if (registrationMode == RegistrationMode.GOOGLE_FORM && formId.isNullOrBlank()) {
             throw IllegalArgumentException("Form ID is required when registration mode is GOOGLE_FORM")
         }
 
-        val requireApproval = publishRequest?.requireApproval ?: event.requireApproval
-        val allowWaitlist = publishRequest?.allowWaitlist ?: event.allowWaitlist
+        val requireApproval = publishRequest?.requireApproval ?: false
+        val allowWaitlist = publishRequest?.allowWaitlist ?: false
+        val allowPartnerPairing = publishRequest?.allowPartnerPairing ?: false
 
-        // Update status to published with new registration settings
-        val updatedEvent = event.copy(
-            status = EventStatus.PUBLISHED,
+        // Create or update registration settings
+        val registrationSettings = EventRegistrationSettings(
+            eventId = eventId,
             registrationMode = registrationMode,
             formId = formId,
-            requireApproval = requireApproval,
+            formStructure = null,
             allowWaitlist = allowWaitlist,
+            allowPartnerPairing = allowPartnerPairing,
+            requireApproval = requireApproval
+        )
+        eventRegistrationSettingsRepository.save(registrationSettings)
+
+        // Fetch form structure from Google Forms API if using GOOGLE_FORM mode
+        if (registrationMode == RegistrationMode.GOOGLE_FORM) {
+            try {
+                syncGoogleFormData(eventId)
+            } catch (e: Exception) {
+                throw IllegalArgumentException("Failed to fetch form structure from Google Forms: ${e.message}")
+            }
+        }
+
+        // Update event status to published
+        val updatedEvent = event.copy(
+            status = EventStatus.PUBLISHED,
             updatedAt = java.time.LocalDateTime.now()
         )
         return eventRepository.save(updatedEvent)
@@ -418,5 +452,18 @@ class EventService(
 
         // Hard delete
         eventRepository.delete(event)
+    }
+
+    /**
+     * Sync event registration form structure with Google Forms
+     * This fetches the latest form structure from Google Forms and updates the database
+     */
+    @Transactional
+    fun syncGoogleFormData(eventId: UUID) {
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        // Sync form structure to database
+        googleFormRegistrationStrategy.syncRegistrationData(event)
     }
 }

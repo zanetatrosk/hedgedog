@@ -115,6 +115,31 @@ class EventController(
     }
 
     /**
+     * Sync event's Google Form registration data
+     * POST /api/events/{eventId}/sync-form
+     * This fetches the latest form structure from Google Forms and updates the cached structure
+     */
+    @PostMapping("/{eventId}/sync-form")
+    fun syncGoogleFormData(
+        @PathVariable eventId: UUID,
+        @RequestHeader("X-User-Id") organizerId: UUID
+    ): ResponseEntity<Map<String, String>> {
+        return try {
+            eventService.syncGoogleFormData(eventId)
+            ResponseEntity.ok(mapOf(
+                "message" to "Google Form data synced successfully",
+                "eventId" to eventId.toString()
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest()
+                .body(mapOf("message" to (e.message ?: "Failed to sync form data")))
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("message" to "An error occurred while syncing form data"))
+        }
+    }
+
+    /**
      * Get user's RSVP for an event
      * GET /api/events/{eventId}/my-rsvp
      */
@@ -144,7 +169,7 @@ class EventController(
             userId = userId,
             status = request.status,
             roleId = request.roleId,
-            paid = request.paid ?: false
+            email = request.email
         )
         return ResponseEntity.ok(registration)
     }
@@ -249,9 +274,9 @@ class EventController(
  * Request body for event registration
  */
 data class RegisterEventRequest(
-    val status: String,  // interested, going, waitlisted
+    val status: RegistrationStatus,  // interested, going, waitlisted
     val roleId: UUID? = null,  // Leader, Follower, Both
-    val paid: Boolean? = false
+    val email: String? = null  // Optional - will use user's email from profile if not provided
 )
 
 /**
