@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import tools.jackson.module.kotlin.jsonMapper
-import java.util.Date
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -48,28 +48,30 @@ class GoogleFormRegistrationStrategy(
     override fun getRegistrationData(event: Event): RegistrationData {
         val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
 
-        // Get registration settings to get formId
-        val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
-            ?: throw IllegalArgumentException("Event ${event.id} has no registration settings")
+        val form = eventRegistrationSettingsRepository.findByEventId(eventId)?.formStructure
+        val headers = parseFormStructure(form)?.headers ?: emptyList()
+        val fetchedRegistrations = matchGoogleResponsesToDbRegistrations(eventId)
 
-//        val form = eventRegistrationSettingsRepository.findByEventId(eventId)?.formStructure
-//        val headers = parseFormStructure(form)?.headers ?: emptyList()
-//        val registrations = eventRegistrationRepository.findByEventId(eventId).map { mapRegistrationToRegistrationRow(it) }
-
-        val formId = registrationSettings.formId
-            ?: throw IllegalArgumentException("Event ${event.id} is set to GOOGLE_FORM mode but has no formId")
-        val organizer = event.organizer
-        val form = googleFormsService.getForm(organizer, formId)
-        val headers = getDynamicHeaders(form)
-        val fetchedRegistrations = matchGoogleResponsesToDbRegistrations(organizer, formId, eventId)
+//        val formId = eventRegistrationSettingsRepository.findByEventId(eventId)?.formId ?: throw IllegalArgumentException("Event ID cannot be null")
+//        val form = googleFormsService.getForm(event.organizer, formId)
+//        val headers = getDynamicHeaders(form)
+//        val fetchedReg = googleFormsService.getFormResponses(event.organizer, formId)
+//        val registrations = eventRegistrationRepository.findByEventId(eventId)
+//        val fetchedRegistrations = fetchedReg.responses?.mapNotNull { googleRegistration ->
+//            val registrationInDb = registrations.find { it.responseId == googleRegistration.responseId }
+//            if (registrationInDb != null) {
+//                mapFormResponseToRegistrationRow(googleRegistration)
+//            } else {
+//                null
+//            }
+//        } ?: emptyList()
 
         return RegistrationData(headers, fetchedRegistrations)
     }
 
-    private fun matchGoogleResponsesToDbRegistrations(organizer: User, formId: String, eventId: UUID): List<RegistrationRow>{
-        val fetchedRegistrations = googleFormsService.getFormResponses(organizer, formId).responses
+    private fun matchGoogleResponsesToDbRegistrations(eventId: UUID): List<RegistrationRow>{
         val registrations = eventRegistrationRepository.findByEventId(eventId)
-        return fetchedRegistrations.mapNotNull { googleRegistration ->
+        return registrations.mapNotNull { googleRegistration ->
             val registrationInDb = registrations.find { it.responseId == googleRegistration.responseId }
             if (registrationInDb != null) {
                 mapRegistrationToRegistrationRow(registrationInDb)
@@ -150,39 +152,46 @@ class GoogleFormRegistrationStrategy(
     }
 
     /**
-     * Parse formStructure JSON from database into StructuredForm object
+     * Generic JSON parser that handles null/blank checks and error logging
      */
-    private fun parseFormStructure(formStructureJson: String?): StructuredForm? {
-        if (formStructureJson.isNullOrBlank()) {
+    private inline fun <reified T> parseJson(
+        json: String?,
+        typeName: String = T::class.simpleName ?: "object",
+        verbose: Boolean = false
+    ): T? {
+        if (json.isNullOrBlank()) {
+            if (verbose) logger.debug("$typeName JSON is null or blank")
             return null
         }
 
         return try {
-            objectMapper.readValue(formStructureJson, StructuredForm::class.java)
-        } catch (e: Exception) {
-            logger.error("Failed to parse form structure JSON: ${formStructureJson}Json", e)
-            null
-        }
-    }
-
-    private fun parseRowStructure(rowStructureJson: String?): RowStructure? {
-        if (rowStructureJson.isNullOrBlank()) {
-            logger.debug("RowStructure JSON is null or blank")
-            return null
-        }
-
-        return try {
-            logger.debug("Attempting to parse RowStructure JSON: $rowStructureJson")
-            val result = objectMapper.readValue(rowStructureJson, RowStructure::class.java)
-            logger.debug("Successfully parsed RowStructure with ${result.data.size} data items")
+            if (verbose) logger.debug("Attempting to parse $typeName JSON: $json")
+            val result = objectMapper.readValue(json, T::class.java)
+            if (verbose && result is RowStructure) {
+                logger.debug("Successfully parsed $typeName with ${result.data.size} data items")
+            }
             result
         } catch (e: Exception) {
-            logger.error("Failed to parse RowStructure JSON: $rowStructureJson", e)
-            logger.error("Exception details: ${e.javaClass.name}: ${e.message}")
-            e.printStackTrace()
+            logger.error("Failed to parse $typeName JSON: $json", e)
+            if (verbose) {
+                logger.error("Exception details: ${e.javaClass.name}: ${e.message}")
+                e.printStackTrace()
+            }
             null
         }
     }
+
+    /**
+     * Parse formStructure JSON from database into StructuredForm object
+     */
+    private fun parseFormStructure(formStructureJson: String?): StructuredForm? =
+        parseJson(formStructureJson, "StructuredForm")
+
+    /**
+     * Parse rowStructure JSON from database into RowStructure object
+     */
+    private fun parseRowStructure(rowStructureJson: String?): RowStructure? =
+        parseJson(rowStructureJson, "RowStructure", verbose = true)
 
     /**
      * Extract just the revisionId from JSONB string without parsing the entire object
@@ -249,7 +258,7 @@ class GoogleFormRegistrationStrategy(
                     if (registrationRow != null) {
                         logger.info("Mapped form response to registration row: ${registrationRow.id}")
                         // Save or update the registration in our database
-                        saveFormResponseToDatabase(registrationRow, eventId, response.responseId)
+                        saveFormResponseToDatabase(registrationRow, eventId, response.responseId, response.lastSubmittedTime)
                     } else {
                         logger.warn("Failed to map form response: ${response.responseId}")
                     }
@@ -298,17 +307,42 @@ class GoogleFormRegistrationStrategy(
 
                 logger.info("About to save registration to database...")
                 val savedRegistration = eventRegistrationRepository.save(newRegistration)
-                eventRegistrationRepository.flush() // Force immediate persistence
                 logger.info("=== SUCCESS === Saved Google Form registration with ID: ${savedRegistration.id} for eventId: $eventId, email: $email")
             } else {
                 val structuredRow = parseRowStructure(existingRegistration.formResponses)
-                if( Date(structuredRow?.lastSubmittedTime) < Date(lastUpdated)) {
+
+                // Update userId if we now have a userId and didn't before
+                if (registrationRow.user.userId != null && existingRegistration.userId == null) {
+                    val updatedRegistration = existingRegistration.copy(userId = registrationRow.user.userId)
+                    eventRegistrationRepository.save(updatedRegistration)
+                }
+
+                // Update form responses if the submission was updated
+                val existingTimestamp = structuredRow?.lastSubmittedTime
+                if (existingTimestamp != null && lastUpdated != null) {
+                    try {
+                        val existingInstant = Instant.parse(existingTimestamp)
+                        val newInstant = Instant.parse(lastUpdated)
+
+                        if (existingInstant.isBefore(newInstant)) {
+                            val formResponses = objectMapper.writeValueAsString(RowStructure(registrationRow.data, registrationRow.lastSubmittedTime))
+                            val updatedRegistration = existingRegistration.copy(formResponses = formResponses)
+                            eventRegistrationRepository.save(updatedRegistration)
+                            logger.info("Updated form responses for registration ${existingRegistration.id} - timestamp changed from $existingTimestamp to $lastUpdated")
+                        }
+                    } catch (e: Exception) {
+                        logger.warn("Failed to compare timestamps for registration ${existingRegistration.id}: existing=$existingTimestamp, new=$lastUpdated", e)
+                    }
+                } else if (lastUpdated != null && existingTimestamp == null) {
+                    // If we have a new timestamp but didn't have one before, always update
                     val formResponses = objectMapper.writeValueAsString(RowStructure(registrationRow.data, registrationRow.lastSubmittedTime))
                     val updatedRegistration = existingRegistration.copy(formResponses = formResponses)
                     eventRegistrationRepository.save(updatedRegistration)
-                    eventRegistrationRepository.flush()
+                    logger.info("Updated form responses for registration ${existingRegistration.id} - added timestamp $lastUpdated")
                 }
+
             }
+            eventRegistrationRepository.flush()
         } catch (e: Exception) {
             logger.error("=== ERROR === Failed to save Google Form response to database: ${registrationRow.id}", e)
             logger.error("Exception type: ${e.javaClass.simpleName}")

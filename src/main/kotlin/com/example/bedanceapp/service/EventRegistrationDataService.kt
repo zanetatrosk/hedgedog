@@ -39,6 +39,7 @@ class EventRegistrationDataService(
         val registrationData = strategy.getRegistrationData(event)
 
         return StatsResponse(
+            eventId = event.id!!,
             eventName = event.eventName,
             date = event.eventDate.toString(),
             recurringDates = eventService.getUpcomingDates(event.parentEventId),
@@ -48,6 +49,7 @@ class EventRegistrationDataService(
 }
 
 data class StatsResponse(
+    val eventId: UUID,
     val eventName: String,
     val date: String,
     val recurringDates: List<RecurringDateInfo>,

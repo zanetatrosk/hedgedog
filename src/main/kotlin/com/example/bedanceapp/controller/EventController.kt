@@ -119,7 +119,7 @@ class EventController(
      * POST /api/events/{eventId}/sync-form
      * This fetches the latest form structure from Google Forms and updates the cached structure
      */
-    @PostMapping("/{eventId}/sync-form")
+    @PostMapping("/{eventId}/sync-registrations")
     fun syncGoogleFormData(
         @PathVariable eventId: UUID,
         @RequestHeader("X-User-Id") organizerId: UUID
