@@ -2,7 +2,11 @@ package com.example.bedanceapp.service.registration
 
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.Event
-import com.example.bedanceapp.service.*
+import com.example.bedanceapp.model.DancerRole
+import com.example.bedanceapp.model.SkillLevel
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import java.util.UUID
 
 /**
@@ -17,11 +21,38 @@ data class RegistrationData(
     val registrations: List<RegistrationRow>
 )
 
-data class Header(
-    val id: String,
-    val question: String,
-    val type: FormQuestionType
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type"
 )
+@JsonSubTypes(
+    JsonSubTypes.Type(value = TextHeader::class, name = "TEXT"),
+    JsonSubTypes.Type(value = ChoiceHeader::class, name = "SET")
+)
+sealed class Header(
+    open val id: String,
+    open val question: String
+) {
+    abstract val type: FormQuestionType
+}
+
+data class TextHeader(
+    override val id: String,
+    override val question: String
+) : Header(id, question) {
+    @JsonProperty("type")
+    override val type: FormQuestionType = FormQuestionType.TEXT
+}
+
+data class ChoiceHeader(
+    override val id: String,
+    override val question: String,
+    val answerSet: List<String>
+) : Header(id, question) {
+    @JsonProperty("type")
+    override val type: FormQuestionType = FormQuestionType.SET
+}
 
 data class RegistrationRow(
     val id: String,
@@ -60,26 +91,50 @@ data class StructuredForm (
  * Common headers used across registration modes
  */
 object RegistrationHeaders {
-    val FULLNAME = Header("fullname", "Full name", FormQuestionType.TEXT)
-    val EXPERIENCE = Header("experience", "Experience level", FormQuestionType.SET)
-    val STATUS = Header("status", "Status", FormQuestionType.SET)
-    val CREATED_AT = Header("createdAt", "Created at", FormQuestionType.TEXT)
+    val FULLNAME = TextHeader("fullname", "Full name")
+
+    /**
+     * Create EXPERIENCE header with answer set from database
+     */
+    fun experience(skillLevels: List<SkillLevel>): ChoiceHeader {
+        return ChoiceHeader(
+            "experience",
+            "Experience level",
+            skillLevels.sortedBy { it.levelOrder }.map { it.name }
+        )
+    }
+
+    val STATUS = ChoiceHeader(
+        "status",
+        "Status",
+        listOf("GOING", "INTERESTED", "WAITLISTED", "CANCELLED", "REJECTED", "PENDING")
+    )
+    val CREATED_AT = TextHeader("createdAt", "Created at")
 }
 
 /**
  * Headers specific to couple mode
  */
 object CoupleHeaders {
-    val ROLE = Header("role", "Role", FormQuestionType.SET)
-    val PARTNER = Header("partner", "Partner", FormQuestionType.TEXT)
+    /**
+     * Create ROLE header with answer set from database
+     */
+    fun role(dancerRoles: List<DancerRole>): ChoiceHeader {
+        return ChoiceHeader(
+            "role",
+            "Role",
+            dancerRoles.map { it.name }
+        )
+    }
+
+    val PARTNER = TextHeader("partner", "Partner")
 }
 
 /**
  * Headers specific to Google Forms mode
  */
 object GoogleFormHeaders {
-    val TIMESTAMP = Header("timestamp", "Timestamp", FormQuestionType.TEXT)
-    val EMAIL = Header("email", "Email Address", FormQuestionType.TEXT)
-    val ERROR = Header("error", "Error", FormQuestionType.TEXT)
+    val TIMESTAMP = TextHeader("timestamp", "Timestamp")
+    val EMAIL = TextHeader("email", "Email Address")
 }
 

@@ -366,17 +366,19 @@ class GoogleFormRegistrationStrategy(
         val questionId = question.questionId ?: return null
         val title = item.title ?: "Question"
 
-        // Determine question type based on the question structure
-        val questionType = when {
-            question.choiceQuestion != null -> FormQuestionType.SET
-            question.textQuestion != null -> FormQuestionType.TEXT
-            question.scaleQuestion != null -> FormQuestionType.TEXT
-            question.dateQuestion != null -> FormQuestionType.TEXT
-            question.timeQuestion != null -> FormQuestionType.TEXT
-            else -> FormQuestionType.TEXT
+        // Create appropriate header type based on the question structure
+        return when {
+            question.choiceQuestion != null -> {
+                // Extract answer options from choice question
+                val options = question.choiceQuestion.options?.mapNotNull { it.value } ?: emptyList()
+                ChoiceHeader(questionId, title, options)
+            }
+            question.textQuestion != null -> TextHeader(questionId, title)
+            question.scaleQuestion != null -> TextHeader(questionId, title)
+            question.dateQuestion != null -> TextHeader(questionId, title)
+            question.timeQuestion != null -> TextHeader(questionId, title)
+            else -> TextHeader(questionId, title)
         }
-
-        return Header(questionId, title, questionType)
     }
 
     /**

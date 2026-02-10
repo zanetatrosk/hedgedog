@@ -4,6 +4,7 @@ import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository
+import com.example.bedanceapp.repository.SkillLevelRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -14,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Component
 open class OpenModeRegistrationStrategy(
-    protected val eventRegistrationRepository: EventRegistrationRepository
+    protected val eventRegistrationRepository: EventRegistrationRepository,
+    protected val skillLevelRepository: SkillLevelRepository
 ) : RegistrationDataStrategy {
 
     @Transactional(readOnly = true)
@@ -28,11 +30,11 @@ open class OpenModeRegistrationStrategy(
      * Get headers for this registration mode
      * Override this to add mode-specific headers (e.g., role for couple mode)
      */
-    protected open fun getHeaders(): List<Header> {
+    protected fun getHeaders(): List<Header> {
+        val skillLevels = skillLevelRepository.findAll()
         return listOf(
             RegistrationHeaders.FULLNAME,
-            RegistrationHeaders.EXPERIENCE,
-            RegistrationHeaders.STATUS,
+            RegistrationHeaders.experience(skillLevels),
             RegistrationHeaders.CREATED_AT
         )
     }
@@ -55,7 +57,7 @@ open class OpenModeRegistrationStrategy(
      * Map a single registration to a row
      * Override this to add mode-specific data fields
      */
-    protected open fun mapRegistrationToRow(registration: EventRegistration): RegistrationRow {
+    protected fun mapRegistrationToRow(registration: EventRegistration): RegistrationRow {
         val fullName = buildFullName(registration)
 
         return RegistrationRow(
@@ -73,10 +75,10 @@ open class OpenModeRegistrationStrategy(
      * Build the data fields for a registration
      * Override this to add mode-specific fields (e.g., role for couple mode)
      */
-    protected open fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
+    protected fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
-            RegistrationDataDto(RegistrationHeaders.EXPERIENCE.id, registration.user?.profile?.generalSkillLevel?.name ?: ""),
+            RegistrationDataDto("experience", registration.user?.profile?.generalSkillLevel?.name ?: ""),
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )
     }

@@ -1,7 +1,9 @@
 package com.example.bedanceapp.service.registration
 
 import com.example.bedanceapp.model.EventRegistration
+import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRegistrationRepository
+import com.example.bedanceapp.repository.SkillLevelRepository
 import org.springframework.stereotype.Component
 
 /**
@@ -16,18 +18,21 @@ import org.springframework.stereotype.Component
  */
 @Component
 class CoupleModeRegistrationStrategy(
-    eventRegistrationRepository: EventRegistrationRepository
-) : OpenModeRegistrationStrategy(eventRegistrationRepository) {
+    eventRegistrationRepository: EventRegistrationRepository,
+    skillLevelRepository: SkillLevelRepository,
+    private val dancerRoleRepository: DancerRoleRepository
+) : OpenModeRegistrationStrategy(eventRegistrationRepository, skillLevelRepository) {
 
     /**
      * Override to add role header for couple mode
      */
     override fun getHeaders(): List<Header> {
+        val skillLevels = skillLevelRepository.findAll()
+        val dancerRoles = dancerRoleRepository.findAll()
         return listOf(
             RegistrationHeaders.FULLNAME,
-            RegistrationHeaders.EXPERIENCE,
-            RegistrationHeaders.STATUS,
-            CoupleHeaders.ROLE,
+            RegistrationHeaders.experience(skillLevels),
+            CoupleHeaders.role(dancerRoles),
             // CoupleHeaders.PARTNER, // TODO: Add when implementing partner matching feature
             RegistrationHeaders.CREATED_AT
         )
@@ -40,9 +45,8 @@ class CoupleModeRegistrationStrategy(
     override fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
-            RegistrationDataDto(RegistrationHeaders.EXPERIENCE.id, registration.user?.profile?.generalSkillLevel?.name ?: ""),
-            RegistrationDataDto(RegistrationHeaders.STATUS.id, registration.status.toString()),
-            RegistrationDataDto(CoupleHeaders.ROLE.id, registration.role?.name ?: ""),
+            RegistrationDataDto("experience", registration.user?.profile?.generalSkillLevel?.name ?: ""),
+            RegistrationDataDto("role", registration.role?.name ?: ""),
             // TODO: Add partner data when implementing partner matching
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )
