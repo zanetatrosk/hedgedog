@@ -92,6 +92,8 @@ data class StructuredForm (
  */
 object RegistrationHeaders {
     val FULLNAME = TextHeader("fullname", "Full name")
+    val EMAIL = TextHeader("email", "Email")
+
 
     /**
      * Create EXPERIENCE header with answer set from database
@@ -104,11 +106,6 @@ object RegistrationHeaders {
         )
     }
 
-    val STATUS = ChoiceHeader(
-        "status",
-        "Status",
-        listOf("GOING", "INTERESTED", "WAITLISTED", "CANCELLED", "REJECTED", "PENDING")
-    )
     val CREATED_AT = TextHeader("createdAt", "Created at")
 }
 

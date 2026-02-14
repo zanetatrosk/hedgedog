@@ -18,7 +18,8 @@ class UserEventService(
     private val eventRegistrationRepository: EventRegistrationRepository,
     private val eventRepository: EventRepository,
     private val eventParentRepository: EventParentRepository,
-    private val eventRegistrationService: EventRegistrationService
+    private val eventRegistrationStatsService: EventRegistrationStatsService,
+    private val eventRegistrationManager: EventRegistrationManager
 ) {
 
     @Transactional(readOnly = true)
@@ -133,14 +134,15 @@ class UserEventService(
     }
 
     private fun mapToSingleEventDTO(event: Event, userStatus: RsvpStatus?): SingleEventDTO {
-        val stats = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id, RegistrationStatus.GOING)
+        val registrations = event.id?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.GOING) } ?: emptyList()
+        val stats = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations)
         val attendeeStats = AttendeeStats(
             going = RegistrationStats(
                 total = stats.total,
                 leaders = stats.leaders,
                 followers = stats.followers
             ),
-            interested = eventRegistrationService.getRegistrationCountByEventId(event.id, RegistrationStatus.INTERESTED)
+            interested = eventRegistrationStatsService.getRegistrationCountByEventId(event.id, RegistrationStatus.INTERESTED)
         )
 
         return SingleEventDTO(

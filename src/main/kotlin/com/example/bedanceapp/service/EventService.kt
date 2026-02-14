@@ -10,6 +10,7 @@ import com.example.bedanceapp.repository.MediaRepository
 import com.example.bedanceapp.repository.UserRepository
 import com.example.bedanceapp.repository.CurrencyRepository
 import com.example.bedanceapp.repository.EventParentRepository
+import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.service.registration.GoogleFormRegistrationStrategy
 import com.example.bedanceapp.specification.EventSpecification
@@ -34,10 +35,11 @@ class EventService(
     private val currencyRepository: CurrencyRepository,
     private val locationService: LocationService,
     private val eventParentRepository: EventParentRepository,
-    private val eventRegistrationService: EventRegistrationService,
+    private val eventRegistrationStatsService: EventRegistrationStatsService,
+    private val eventRegistrationManager: EventRegistrationManager,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
-    private val googleFormsService: GoogleFormsService,
     private val googleFormRegistrationStrategy: GoogleFormRegistrationStrategy,
+    private val eventRegistrationRepository: EventRegistrationRepository
 ) {
 
     private val jsonFactory = GsonFactory.getDefaultInstance()
@@ -79,9 +81,9 @@ class EventService(
         val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
         // Build address string from location
         val eventId = event.id
-        val countEventRegistration = eventRegistrationService.getRegistrationRolesCountsByEventId(eventId,
-            RegistrationStatus.GOING)
-        val countInterested = eventRegistrationService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
+        val registrations = eventId?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.GOING) }
+        val countEventRegistration = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations?: emptyList())
+        val countInterested = eventRegistrationStatsService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
         val registrationStatus = if(userId != null && eventId != null) {
             eventRepository.findUserRegistrationStatus(eventId, userId)
         } else {
@@ -118,12 +120,11 @@ class EventService(
         val event = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 
-        val statusUser = eventRegistrationService.getLastRegistrationByEventIdAndUserId(eventId, userId)
-
+        val statusUser = eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
+        val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.GOING)
         // Get registration stats
-        val registrationCount = eventRegistrationService.getRegistrationRolesCountsByEventId(event.id,
-            RegistrationStatus.GOING)
-        val interestedCount = eventRegistrationService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
+        val registrationCount = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations)
+        val interestedCount = eventRegistrationStatsService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
         // Handle recurring dates if this event has a parent
         val parentEventId = event.parentEventId
         val recurringDates = getUpcomingDates(parentEventId)
@@ -209,6 +210,24 @@ class EventService(
         // Find existing event
         val existingEvent = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
+
+        val registrations = eventRegistrationRepository.findByEventId(eventId)
+        val activeRegistrations = eventRegistrationManager.getActiveRegistrations(registrations)
+
+        request.additionalDetails?.maxAttendees.let {
+            maxAttendees ->
+            if (maxAttendees != null) {
+                if(maxAttendees < activeRegistrations.size) {
+                    throw IllegalArgumentException("Cannot lower capacity below current attendee count")
+                }
+                if(existingEvent.maxAttendees != null && existingEvent.maxAttendees != maxAttendees){
+                    eventRegistrationManager.recalculateRegistrations(eventId, maxAttendees, registrations)
+                }
+
+            }
+        }
+
+
 
         // Validate organizer matches (only organizer can update their event)
         if (existingEvent.organizerId != organizerId) {
@@ -401,7 +420,7 @@ class EventService(
         // Fetch form structure from Google Forms API if using GOOGLE_FORM mode
         if (registrationMode == RegistrationMode.GOOGLE_FORM) {
             try {
-                syncGoogleFormData(eventId)
+                eventRegistrationManager.syncGoogleFormData(eventId)
             } catch (e: Exception) {
                 throw IllegalArgumentException("Failed to fetch form structure from Google Forms: ${e.message}")
             }
@@ -452,18 +471,5 @@ class EventService(
 
         // Hard delete
         eventRepository.delete(event)
-    }
-
-    /**
-     * Sync event registration form structure with Google Forms
-     * This fetches the latest form structure from Google Forms and updates the database
-     */
-    @Transactional
-    fun syncGoogleFormData(eventId: UUID) {
-        val event = eventRepository.findById(eventId)
-            .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
-
-        // Sync form structure to database
-        googleFormRegistrationStrategy.syncRegistrationData(event)
     }
 }

@@ -9,7 +9,7 @@ import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.UserRepository
-import com.example.bedanceapp.service.EventRegistrationService
+import com.example.bedanceapp.service.EventRegistrationManager
 import com.example.bedanceapp.service.GoogleFormsService
 import tools.jackson.databind.ObjectMapper
 import com.google.api.services.forms.v1.model.Form
@@ -37,9 +37,9 @@ class GoogleFormRegistrationStrategy(
     private val googleFormsService: GoogleFormsService,
     private val userRepository: UserRepository,
     private val eventRegistrationRepository: EventRegistrationRepository,
+    private val eventRegistrationManager: EventRegistrationManager,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
-    private val objectMapper: ObjectMapper,
-    private val eventRegistrationService: EventRegistrationService
+    private val objectMapper: ObjectMapper
 ) : RegistrationDataStrategy {
 
     private val logger = LoggerFactory.getLogger(GoogleFormRegistrationStrategy::class.java)
@@ -129,7 +129,6 @@ class GoogleFormRegistrationStrategy(
 
         val existingFormJson = registrationSettings.formStructure
         val existingRevisionId = extractRevisionId(existingFormJson)
-
         val newRevisionId = form.revisionId
 
         // Check if form has changed
@@ -248,7 +247,6 @@ class GoogleFormRegistrationStrategy(
             logger.info("Fetching form responses for formId: $formId")
             val responsesResponse = googleFormsService.getFormResponses(organizer, formId)
             val responses = responsesResponse.responses ?: return emptyList()
-
             logger.info("Found ${responses.size} form responses")
             val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
 
@@ -258,7 +256,7 @@ class GoogleFormRegistrationStrategy(
                     if (registrationRow != null) {
                         logger.info("Mapped form response to registration row: ${registrationRow.id}")
                         // Save or update the registration in our database
-                        saveFormResponseToDatabase(registrationRow, eventId, response.responseId, response.lastSubmittedTime)
+                        saveFormResponseToDatabase(registrationRow, eventId, response.responseId, event.maxAttendees, response.lastSubmittedTime, )
                     } else {
                         logger.warn("Failed to map form response: ${response.responseId}")
                     }
@@ -280,7 +278,7 @@ class GoogleFormRegistrationStrategy(
     /**
      * Save or update a Google Form response to our registrations table
      */
-    private fun saveFormResponseToDatabase(registrationRow: RegistrationRow, eventId: UUID, responseId: String, lastUpdated: String? = null) {
+    private fun saveFormResponseToDatabase(registrationRow: RegistrationRow, eventId: UUID, responseId: String, maxAttendees: Int?, lastUpdated: String? = null) {
         logger.info("=== ENTERING saveFormResponseToDatabase ===")
         logger.info("Registration Row ID: ${registrationRow.id}")
         logger.info("Event ID: $eventId")
@@ -290,6 +288,8 @@ class GoogleFormRegistrationStrategy(
             val userId = registrationRow.user.userId
             logger.info("Checking for existing registration...")
             val existingRegistration = eventRegistrationRepository.findByEventIdAndResponseId(eventId, responseId).firstOrNull()
+                ?: userId?.let { eventRegistrationRepository.findByEventIdAndUserId(eventId, it).firstOrNull() }
+            val registrations = eventRegistrationRepository.findByEventId(eventId)
 
             if (existingRegistration == null) {
                 logger.info("No existing registration found, creating new one...")
@@ -298,7 +298,7 @@ class GoogleFormRegistrationStrategy(
                 val newRegistration = EventRegistration(
                     eventId = eventId,
                     userId = userId,
-                    status = RegistrationStatus.GOING, // Default status for Google Form submissions
+                    status = eventRegistrationManager.assignEventStatus(registrations, eventId, RegistrationStatus.GOING, null, maxAttendees), // Default status for Google Form submissions
                     roleId = null, // Google Forms may not have role info
                     email = email,
                     responseId = responseId,

@@ -34,6 +34,7 @@ open class OpenModeRegistrationStrategy(
         val skillLevels = skillLevelRepository.findAll()
         return listOf(
             RegistrationHeaders.FULLNAME,
+            RegistrationHeaders.EMAIL,
             RegistrationHeaders.experience(skillLevels),
             RegistrationHeaders.CREATED_AT
         )
@@ -78,6 +79,7 @@ open class OpenModeRegistrationStrategy(
     protected fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
+            RegistrationDataDto(RegistrationHeaders.EMAIL.id, registration.user?.email ?: ""),
             RegistrationDataDto("experience", registration.user?.profile?.generalSkillLevel?.name ?: ""),
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )

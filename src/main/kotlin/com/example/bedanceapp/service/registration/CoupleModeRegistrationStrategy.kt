@@ -25,31 +25,28 @@ class CoupleModeRegistrationStrategy(
 
     /**
      * Override to add role header for couple mode
+     * Calls parent to get base headers and inserts role header before the last item (CREATED_AT)
      */
     override fun getHeaders(): List<Header> {
-        val skillLevels = skillLevelRepository.findAll()
+        val baseHeaders = super.getHeaders()
         val dancerRoles = dancerRoleRepository.findAll()
-        return listOf(
-            RegistrationHeaders.FULLNAME,
-            RegistrationHeaders.experience(skillLevels),
-            CoupleHeaders.role(dancerRoles),
-            // CoupleHeaders.PARTNER, // TODO: Add when implementing partner matching feature
-            RegistrationHeaders.CREATED_AT
-        )
+
+        // Insert role header before CREATED_AT (last item)
+        return baseHeaders.dropLast(1) + CoupleHeaders.role(dancerRoles) + baseHeaders.last()
+        // CoupleHeaders.PARTNER, // TODO: Add when implementing partner matching feature
     }
 
     /**
      * Override to add role data field
-     * Reuses the base buildFullName() helper
+     * Calls parent to get base data fields and inserts role data before the last item (CREATED_AT)
      */
     override fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
-        return listOf(
-            RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
-            RegistrationDataDto("experience", registration.user?.profile?.generalSkillLevel?.name ?: ""),
-            RegistrationDataDto("role", registration.role?.name ?: ""),
-            // TODO: Add partner data when implementing partner matching
-            RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
-        )
+        val baseDataFields = super.buildDataFields(registration, fullName)
+        val roleData = RegistrationDataDto("role", registration.role?.name ?: "")
+
+        // Insert role data before CREATED_AT (last item)
+        return baseDataFields.dropLast(1) + roleData + baseDataFields.last()
+        // TODO: Add partner data when implementing partner matching
     }
 
     // TODO: Future methods for couple-specific features

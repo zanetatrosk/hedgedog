@@ -4,6 +4,7 @@ import com.google.api.client.auth.oauth2.TokenResponse
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
+import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.oauth2.Oauth2
@@ -96,10 +97,31 @@ class GoogleOAuth2Service {
     }
 
     fun refreshAccessToken(refreshToken: String): TokenResponse {
-        val flow = getFlow(baseScopes)
-        return flow.newTokenRequest(refreshToken)
-            .setGrantType("refresh_token")
-            .execute()
+        val clientSecretsJson = """
+            {
+                "installed": {
+                    "client_id": "$clientId",
+                    "client_secret": "$clientSecret"
+                }
+            }
+        """.trimIndent()
+
+        val clientSecrets = GoogleClientSecrets.load(
+            jsonFactory,
+            StringReader(clientSecretsJson)
+        )
+
+        return com.google.api.client.auth.oauth2.RefreshTokenRequest(
+            httpTransport,
+            jsonFactory,
+            GenericUrl("https://oauth2.googleapis.com/token"),
+            refreshToken
+        ).setClientAuthentication(
+            com.google.api.client.http.BasicAuthentication(
+                clientSecrets.details.clientId,
+                clientSecrets.details.clientSecret
+            )
+        ).execute()
     }
 
     fun getIncrementalAuthUrl(userId: String, additionalScopes: List<String>): String {

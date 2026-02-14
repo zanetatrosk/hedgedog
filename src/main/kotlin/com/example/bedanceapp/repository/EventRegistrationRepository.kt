@@ -21,6 +21,7 @@ interface EventRegistrationRepository : JpaRepository<EventRegistration, UUID> {
 
     fun findByEventIdAndStatus(eventId: UUID, status: RegistrationStatus): List<EventRegistration>
 
+    fun findByEventIdOrderByCreatedAt(eventId: UUID): List<EventRegistration>
 
     fun findByEventIdAndStatusNot(eventId: UUID, status: RegistrationStatus): List<EventRegistration>
 }
