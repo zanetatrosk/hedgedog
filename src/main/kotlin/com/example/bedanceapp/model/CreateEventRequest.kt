@@ -16,7 +16,9 @@ data class BasicInfoRequest(
     val location: LocationRequest?,  // New structured location
     val date: String,      // ISO date format: "2024-01-15"
     val time: String,      // Format: "18:00"
-    val endDate: String?,  // For recurring events
+    val endDate: String?,
+    val isRecurring: Boolean?,
+    val recurrenceType: RecurrenceType?,
     val price: BigDecimal?,
     val currency: String?
 )
@@ -51,4 +53,10 @@ data class CreateEventResponse(
     val events: List<UUID?>,
     val message: String
 )
+
+enum class RecurrenceType {
+    DAILY,
+    WEEKLY,
+    MONTHLY
+}
 

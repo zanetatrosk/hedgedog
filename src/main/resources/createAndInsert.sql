@@ -135,6 +135,7 @@ CREATE TABLE events (
                         location_id UUID,
                         event_date DATE NOT NULL,
                         event_time TIME NOT NULL,
+                        end_date DATE,
                         currency_code VARCHAR(3),
                         price DECIMAL(10, 2),
                         max_attendees INTEGER,

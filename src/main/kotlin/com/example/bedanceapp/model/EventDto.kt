@@ -8,6 +8,7 @@ data class EventDto(
     val eventName: String,
     val description: String? = null,
     val date: String,
+    val endDate: String? = null,
     val time: String,
     val location: LocationRequest?,
     val price: BigDecimal?,

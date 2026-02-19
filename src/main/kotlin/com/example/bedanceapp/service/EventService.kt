@@ -38,8 +38,8 @@ class EventService(
     private val eventRegistrationStatsService: EventRegistrationStatsService,
     private val eventRegistrationManager: EventRegistrationManager,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
-    private val googleFormRegistrationStrategy: GoogleFormRegistrationStrategy,
-    private val eventRegistrationRepository: EventRegistrationRepository
+    private val eventRegistrationRepository: EventRegistrationRepository,
+    private val recurringEventService: com.example.bedanceapp.service.recurring.RecurringEventService
 ) {
 
     private val jsonFactory = GsonFactory.getDefaultInstance()
@@ -99,6 +99,7 @@ class EventService(
             eventName = event.eventName,
             description = event.description,
             date = event.eventDate.toString(),
+            endDate = event.endDate?.toString(),
             time = event.eventTime.toString(),
             location = locationToDto(event.location),
             price = event.price,
@@ -129,13 +130,6 @@ class EventService(
         val parentEventId = event.parentEventId
         val recurringDates = getUpcomingDates(parentEventId)
 
-        // Get end date for recurring events
-        val endDate = if (recurringDates.isNotEmpty()) {
-            recurringDates.maxByOrNull { it.date }?.date
-        } else {
-            null
-        }
-
         // Fetch registration settings (optional)
         val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
 
@@ -148,7 +142,7 @@ class EventService(
                 time = event.eventTime.toString(),
                 price = event.price,
                 currency = event.currency?.code,
-                endDate = endDate,
+                endDate = event.endDate?.toString(),
                 recurringDates = recurringDates,
                 organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
                 status = event.status.name,
@@ -257,6 +251,7 @@ class EventService(
         // Parse date and time
         val eventDate = date ?: LocalDate.parse(request.basicInfo.date)
         val eventTime = LocalTime.parse(request.basicInfo.time)
+        val endDate = request.basicInfo.endDate?.let { LocalDate.parse(it) }
 
         // Fetch currency
         val currency = if (request.basicInfo.currency != null) {
@@ -320,6 +315,7 @@ class EventService(
             description = request.description,
             eventDate = eventDate,
             eventTime = eventTime,
+            endDate = endDate,
             locationId = location?.id,
             currency = currency,
             price = request.basicInfo.price,
@@ -334,43 +330,18 @@ class EventService(
         )
     }
 
-    fun generateDates(startDate: LocalDate, endDate: LocalDate): List<LocalDate> {
-        val dates = mutableListOf<LocalDate>()
-        var currentDate = startDate
-        while (!currentDate.isAfter(endDate)) {
-            dates.add(currentDate)
-            currentDate = currentDate.plusDays(7)
-            }
-        return dates
-    }
-
     fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {
-        if (parentEventId == null) {
-            return emptyList()
-        }
-        val siblingEvents = eventRepository.findByParentEventId(parentEventId)
-        return siblingEvents.map { sibling ->
-            RecurringDateInfo(
-                date = sibling.eventDate.toString(),
-                id = sibling.id.toString()
-            )
-        }.sortedBy { it.date }
-
+        return recurringEventService.getUpcomingDates(parentEventId)
     }
     @Transactional
     fun createEventByOccurrence(request: CreateEventRequest, organizerId: UUID): List<Event> {
-        // Validate organizer exists
-        if( request.basicInfo.endDate == "" || request.basicInfo.endDate == null ) {
-            return listOf(createEvent(request, organizerId))
-        }
-        val parent = eventParentRepository.save(EventParent(name = request.basicInfo.eventName))
-        val dates = generateDates(LocalDate.parse(request.basicInfo.date), LocalDate.parse(request.basicInfo.endDate))
-        val events = mutableListOf<Event>()
-        for(date in dates) {
-            val event = createEvent(request, organizerId, date, parent.id)
-            events.add(event)
-        }
-        return events
+        return recurringEventService.createRecurringEvents(
+            request = request,
+            organizerId = organizerId,
+            createEventFn = { req, orgId, date, parentId ->
+                createEvent(req, orgId, date, parentId)
+            }
+        )
     }
 
     @Transactional

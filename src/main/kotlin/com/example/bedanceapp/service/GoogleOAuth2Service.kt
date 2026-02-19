@@ -12,6 +12,7 @@ import com.google.api.services.oauth2.model.Userinfo
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.StringReader
+import kotlin.collections.set
 
 @Service
 class GoogleOAuth2Service {
@@ -62,7 +63,6 @@ class GoogleOAuth2Service {
             clientSecrets,
             scopes
         ).setAccessType("offline")
-            .setApprovalPrompt("force")
             .build()
     }
 
@@ -74,6 +74,7 @@ class GoogleOAuth2Service {
         if (state != null) {
             url.state = state
         }
+        url.set("include_granted_scopes", "true")  // Always include
 
         return url.build()
     }
@@ -129,7 +130,7 @@ class GoogleOAuth2Service {
         return getAuthorizationUrl(
             scopes = additionalScopes,
             state = "incremental_$userId"
-        ) + "&include_granted_scopes=true&login_hint=$userId"
+        ) + "&login_hint=$userId"
     }
 }
 

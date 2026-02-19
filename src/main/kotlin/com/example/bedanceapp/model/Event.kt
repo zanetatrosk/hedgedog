@@ -33,6 +33,9 @@ data class Event(
     @Column(name = "event_date", nullable = false)
     val eventDate: LocalDate,
 
+    @Column(name = "end_date")
+    val endDate: LocalDate? = null,
+
     @Column(name = "event_time", nullable = false)
     val eventTime: LocalTime,
 
