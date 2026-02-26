@@ -3,6 +3,7 @@ package com.example.bedanceapp.controller
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.service.EventRegistrationDataService
 import com.example.bedanceapp.service.EventRegistrationManager
+import com.example.bedanceapp.service.OrganizerAction
 import com.example.bedanceapp.service.StatsResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -28,25 +29,11 @@ class RegistrationController(
     }
 
     /**
-     * Get user's RSVP for an event
-     * GET /api/events/{eventId}/my-rsvp
-     */
-    @GetMapping("/{eventId}/my-rsvp")
-    fun getMyRsvp(
-        @PathVariable eventId: UUID,
-        @RequestHeader("X-User-Id") userId: UUID
-    ): ResponseEntity<EventRegistration> {
-        val registration = eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
-            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
-        return ResponseEntity.ok(registration)
-    }
-
-    /**
      * Create or update user's RSVP for an event
      * PUT /api/events/{eventId}/my-rsvp
      * Valid statuses: interested, going, waitlisted
      */
-    @PutMapping("/{eventId}/my-rsvp")
+    @PutMapping("/{eventId}/registrations")
     fun createOrUpdateMyRsvp(
         @PathVariable eventId: UUID,
         @RequestHeader("X-User-Id") userId: UUID,
@@ -66,22 +53,14 @@ class RegistrationController(
      * Cancel/remove user's RSVP for an event
      * DELETE /api/events/{eventId}/my-rsvp
      */
-    @DeleteMapping("/{eventId}/my-rsvp")
+    @DeleteMapping("/{eventId}/registrations/{registrationId}")
     fun deleteMyRsvp(
         @PathVariable eventId: UUID,
+        @PathVariable registrationId: UUID,
         @RequestHeader("X-User-Id") userId: UUID
     ): ResponseEntity<Map<String, String>> {
-        val registration = eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
-            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf("message" to "No RSVP found for this event"))
-
-        val cancelled = eventRegistrationManager.cancelRegistration(eventId, userId, registration.id!!)
-        return if (cancelled) {
-            ResponseEntity.ok(mapOf("message" to "RSVP cancelled successfully"))
-        } else {
-            ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf("message" to "No RSVP found for this event"))
-        }
+        eventRegistrationManager.deleteRegistrationByRegistrationId(registrationId)
+        return ResponseEntity.ok(mapOf("message" to "Registration deleted successfully"))
     }
 
     /**
@@ -89,7 +68,7 @@ class RegistrationController(
      * POST /api/events/{eventId}/sync-form
      * This fetches the latest form structure from Google Forms and updates the cached structure
      */
-    @PostMapping("/{eventId}/sync-registrations")
+    @PostMapping("/{eventId}/registrations/synchronization")
     fun syncGoogleFormData(
         @PathVariable eventId: UUID,
         @RequestHeader("X-User-Id") organizerId: UUID
@@ -110,24 +89,47 @@ class RegistrationController(
     }
 
     /**
-     * Update registration status (organizer only)
+     * Update registration status
      * PATCH /api/events/{eventId}/registrations/{registrationId}
+     *
+     * Handles both:
+     * - Organizer actions (approve/reject)
+     * - User cancellations
      */
     @PatchMapping("/{eventId}/registrations/{registrationId}")
     fun updateRegistrationStatus(
         @PathVariable eventId: UUID,
         @PathVariable registrationId: UUID,
-        @RequestHeader("X-User-Id") organizerId: UUID,
-        @RequestBody request: OrganizerRegistrationActionRequest
+        @RequestHeader("X-User-Id") userId: UUID,
+        @RequestBody request: RegistrationActionRequest
     ): ResponseEntity<EventRegistration> {
 
-        eventRegistrationManager.assertOrganizer(eventId, organizerId)
-
-        val updated = eventRegistrationManager
-            .handleOrganizerAction(
-                registrationId = registrationId,
-                action = request.action
-            )
+        val updated = when (request.action) {
+            RegistrationAction.APPROVE, RegistrationAction.REJECT -> {
+                // Organizer actions - verify organizer permission
+                eventRegistrationManager.assertOrganizer(eventId, userId)
+                val organizerAction = when (request.action) {
+                    RegistrationAction.APPROVE -> OrganizerAction.APPROVE
+                    RegistrationAction.REJECT -> OrganizerAction.REJECT
+                    else -> throw IllegalArgumentException("Invalid organizer action")
+                }
+                eventRegistrationManager.handleOrganizerAction(
+                    registrationId = registrationId,
+                    action = organizerAction
+                )
+            }
+            RegistrationAction.CANCEL -> {
+                // User cancellation - verify user owns the registration
+                eventRegistrationManager.cancelRegistration(
+                    eventId = eventId,
+                    userId = userId,
+                    registrationId = registrationId
+                )
+                // Return the cancelled registration
+                eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
+                    ?: throw IllegalStateException("Registration not found after cancellation")
+            }
+        }
 
         return ResponseEntity.ok(updated)
     }
@@ -151,11 +153,13 @@ enum class RegistrationStatus {
     PENDING
 }
 
-data class OrganizerRegistrationActionRequest(
-    val action: OrganizerAction
+data class RegistrationActionRequest(
+    val action: RegistrationAction
 )
 
-enum class OrganizerAction {
-    APPROVE,
-    REJECT
+enum class RegistrationAction {
+    APPROVE,    // Organizer action: approve pending registration
+    REJECT,     // Organizer action: reject registration
+    CANCEL      // User action: cancel their own registration
 }
+

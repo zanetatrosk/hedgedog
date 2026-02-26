@@ -1,6 +1,5 @@
 package com.example.bedanceapp.service
 
-import com.example.bedanceapp.controller.OrganizerAction
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationCount
@@ -37,6 +36,17 @@ class EventRegistrationManager(
         }
         val registrations = eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)
         return registrations.lastOrNull()
+    }
+
+    @Transactional
+    fun deleteRegistrationByRegistrationId(registrationId: UUID){
+        val registration = eventRegistrationRepository.findById(registrationId)
+            .orElseThrow { IllegalArgumentException("Registration not found with id: $registrationId") }
+        if( registration.status != RegistrationStatus.INTERESTED){
+            throw IllegalArgumentException("Cannot delete non-interested registration")
+        }
+        eventRegistrationRepository.delete(registration)
+
     }
 
     @Transactional(readOnly = true)
@@ -284,6 +294,9 @@ class EventRegistrationManager(
         val registrationToCancel = eventRegistrationRepository.findById(registrationId)
         if( registrationToCancel.isEmpty ){
             throw IllegalArgumentException("Registration not found with id: $registrationId")
+        }
+        if( registrationToCancel.get().status == RegistrationStatus.INTERESTED ) {
+            throw IllegalArgumentException("Cannot cancel an interested registration")
         }
         if( userId != registrationToCancel.get().userId && userId != event.get().organizerId ){
             throw IllegalArgumentException("User is not authorized to cancel this registration")

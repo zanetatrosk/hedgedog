@@ -18,8 +18,13 @@ data class EventDto(
     val attendees: Int? = 0,
     val interested: Int? = 0,
     val promoMedia: EventMedia? = null,
-    val registrationStatus: String? = null,
+    val registrationStatus: UserRegistrationStatus? = null,
     val status: EventStatus? = null,
     val registrationType: RegistrationMode,
     val formId: String? = null,
+)
+
+data class UserRegistrationStatus(
+    val id: String,
+    val status: String
 )

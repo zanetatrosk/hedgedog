@@ -84,10 +84,19 @@ class EventService(
         val registrations = eventId?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.GOING) }
         val countEventRegistration = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations?: emptyList())
         val countInterested = eventRegistrationStatsService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
-        val registrationStatus = if(userId != null && eventId != null) {
-            eventRepository.findUserRegistrationStatus(eventId, userId)
+
+        // Get user's registration if they have one
+        val userRegistration = if(userId != null && eventId != null) {
+            eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
         } else {
             null
+        }
+
+        val registrationStatus = userRegistration?.let {
+            UserRegistrationStatus(
+                id = it.id.toString(),
+                status = it.status.name
+            )
         }
 
         // Fetch registration settings (optional)
@@ -133,6 +142,13 @@ class EventService(
         // Fetch registration settings (optional)
         val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
 
+        val registrationStatus = statusUser?.let {
+            UserRegistrationStatus(
+                id = it.id.toString(),
+                status = it.status.name
+            )
+        }
+
         return EventDetailData(
             id = event.id.toString(),
             basicInfo = EventDetailBasicInfo(
@@ -146,7 +162,7 @@ class EventService(
                 recurringDates = recurringDates,
                 organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName),
                 status = event.status.name,
-                statusUser = statusUser?.status,
+                registrationStatus = registrationStatus,
                 registrationType = registrationSettings?.registrationMode ?: RegistrationMode.OPEN,
                 formId = registrationSettings?.formId
             ),

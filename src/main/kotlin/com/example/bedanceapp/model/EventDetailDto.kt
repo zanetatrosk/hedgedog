@@ -25,7 +25,7 @@ data class EventDetailBasicInfo(
     val organizer: OrganizerDto,
     val recurringDates: List<RecurringDateInfo>,
     val status: String,  // "Past", "Scheduled", "Cancelled"
-    val statusUser: RegistrationStatus?,  // "Joined", "Interested", null
+    val registrationStatus: UserRegistrationStatus?,  // User's registration info (id and status)
     val registrationType: RegistrationMode,
     val formId: String? = null,
 )
