@@ -1,6 +1,7 @@
 package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.EventRegistration
+import com.example.bedanceapp.model.EventRegistrationDto
 import com.example.bedanceapp.service.EventRegistrationDataService
 import com.example.bedanceapp.service.EventRegistrationManager
 import com.example.bedanceapp.service.OrganizerAction
@@ -26,6 +27,16 @@ class RegistrationController(
     fun getEventStats(@PathVariable id: UUID): ResponseEntity<StatsResponse> {
         val stats = eventRegistrationDataService.getAllStatsByEvent(id)
         return ResponseEntity.ok(stats)
+    }
+
+    /**
+     * Get registration data
+     * GET /api/events/{id}/registrations
+     */
+    @GetMapping("/{id}/registrations")
+    fun getApprovedRegistrations(@PathVariable id: UUID): ResponseEntity<List<EventRegistrationDto>> {
+        val registrations = eventRegistrationManager.getAllApprovedRegistrations(id);
+        return ResponseEntity.ok(registrations)
     }
 
     /**

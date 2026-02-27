@@ -182,7 +182,8 @@ class EventService(
                 going = RegistrationStats(
                     total = registrationCount.total,
                     leaders = registrationCount.leaders,
-                    followers = registrationCount.followers
+                    followers = registrationCount.followers,
+                    both = registrationCount.both
                 ),
                 interested = interestedCount
             )

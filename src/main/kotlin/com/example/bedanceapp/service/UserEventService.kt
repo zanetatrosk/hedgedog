@@ -140,7 +140,8 @@ class UserEventService(
             going = RegistrationStats(
                 total = stats.total,
                 leaders = stats.leaders,
-                followers = stats.followers
+                followers = stats.followers,
+                both = stats.both
             ),
             interested = eventRegistrationStatsService.getRegistrationCountByEventId(event.id, RegistrationStatus.INTERESTED)
         )

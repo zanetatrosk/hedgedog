@@ -3,6 +3,8 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationCount
+import com.example.bedanceapp.model.EventRegistrationDto
+import com.example.bedanceapp.model.RegistrationUserDto
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.DancerRoleRepository
@@ -58,7 +60,12 @@ class EventRegistrationManager(
                 rolesCount[roleName] = (rolesCount[roleName]?.plus(1) ?: 0)
             }
         }
-        return EventRegistrationCount(eventRegistrations.size, rolesCount["Leader"] ?: 0, rolesCount["Follower"] ?: 0)
+        return EventRegistrationCount(
+            total = eventRegistrations.size,
+            leaders = rolesCount["Leader"] ?: 0,
+            followers = rolesCount["Follower"] ?: 0,
+            both = rolesCount["Both"] ?: 0
+        )
     }
 
     fun assignEventStatus(
@@ -336,6 +343,29 @@ class EventRegistrationManager(
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
         if (event.organizerId != organizerId) {
             throw IllegalArgumentException("User is not authorized to perform this action")
+        }
+    }
+
+    fun getAllApprovedRegistrations(eventId: UUID): List<EventRegistrationDto>{
+        val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.GOING)
+
+        return registrations.map { registration ->
+            val user = registration.userId?.let { userId ->
+                userRepository.findById(userId).orElse(null)
+            }
+
+            EventRegistrationDto(
+                registrationId = registration.id.toString(),
+                user = user?.let { u ->
+                    RegistrationUserDto(
+                        userId = u.id.toString(),
+                        name = "${u.profile?.firstName ?: ""} ${u.profile?.lastName ?: ""}".trim(),
+                        avatar = u.profile?.avatarMediaId?.toString()
+                    )
+                },
+                level = user?.profile?.generalSkillLevel?.name,
+                role = registration.role?.name
+            )
         }
     }
 }
