@@ -6,7 +6,6 @@ DROP TABLE IF EXISTS event_registration CASCADE;
 DROP TABLE IF EXISTS event_registration_settings CASCADE;
 DROP TABLE IF EXISTS event_type CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS dancer_role CASCADE;
 DROP TABLE IF EXISTS skill_levels CASCADE;
 DROP TABLE IF EXISTS user_profiles CASCADE;
@@ -14,7 +13,6 @@ DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS user_favorites CASCADE;
 DROP TABLE IF EXISTS dance_styles_events CASCADE;
 DROP TABLE IF EXISTS events_skill_levels CASCADE;
-DROP TABLE IF EXISTS notifications_users CASCADE;
 DROP TABLE IF EXISTS user_dance_interests CASCADE;
 DROP TABLE IF EXISTS user_dance_styles CASCADE;
 DROP TABLE IF EXISTS events_event_types CASCADE;
@@ -25,6 +23,9 @@ DROP TABLE IF EXISTS user_media CASCADE;
 DROP TABLE IF EXISTS profile_media CASCADE;
 DROP TABLE IF EXISTS event_media CASCADE;
 DROP TABLE IF EXISTS locations CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS notifications_users CASCADE;
+
 -- End of removing
 
 -- Users table
@@ -154,7 +155,6 @@ CREATE TABLE event_registration_settings (
                                              form_id VARCHAR(255),
                                              form_structure JSONB,
                                              allow_waitlist BOOLEAN NOT NULL DEFAULT false,
-                                             allow_partner_pairing BOOLEAN NOT NULL DEFAULT false,
                                              require_approval BOOLEAN NOT NULL DEFAULT false
 );
 
@@ -174,8 +174,9 @@ CREATE TABLE registrations (
                                event_id UUID NOT NULL,
                                user_id UUID,
                                role_id UUID,
-                               status VARCHAR(20) NOT NULL DEFAULT 'going',
+                               status VARCHAR(20) NOT NULL DEFAULT 'registered',
                                email VARCHAR(255) NOT NULL,
+                               is_anonymous BOOLEAN NOT NULL DEFAULT false,
                                response_id varchar(255),
                                form_responses JSONB,
                                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -184,17 +185,6 @@ CREATE TABLE registrations (
 ALTER TABLE registrations ADD CONSTRAINT pk_registrations PRIMARY KEY (id);
 ALTER TABLE registrations ADD CONSTRAINT uc_registrations_user_event UNIQUE (event_id, user_id);
 
--- Notifications table
-CREATE TABLE notifications (
-                               id UUID NOT NULL DEFAULT gen_random_uuid(),
-                               user_id UUID NOT NULL,
-                               notification_type VARCHAR(50) NOT NULL,
-                               title VARCHAR(255) NOT NULL,
-                               message TEXT,
-                               is_read BOOLEAN NOT NULL DEFAULT false,
-                               created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-ALTER TABLE notifications ADD CONSTRAINT pk_notifications PRIMARY KEY (id);
 
 -- User media table
 CREATE TABLE user_media (
@@ -263,9 +253,6 @@ ALTER TABLE registrations ADD CONSTRAINT fk_registrations_users FOREIGN KEY (use
 ALTER TABLE registrations ADD CONSTRAINT fk_registrations_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
 
 
--- notifications references
-ALTER TABLE notifications ADD CONSTRAINT fk_notifications_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
-
 -- user_media references
 ALTER TABLE user_media ADD CONSTRAINT fk_user_media_user_profiles FOREIGN KEY (user_id) REFERENCES user_profiles (user_id) ON DELETE CASCADE;
 ALTER TABLE user_media ADD CONSTRAINT fk_user_media_media FOREIGN KEY (media_id) REFERENCES media (id) ON DELETE CASCADE;
@@ -290,7 +277,6 @@ CREATE INDEX idx_events_parent ON events(parent_event_id);
 CREATE INDEX idx_events_location ON events(location_id);
 CREATE INDEX idx_registrations_event ON registrations(event_id);
 CREATE INDEX idx_registrations_user ON registrations(user_id);
-CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_user_dance_styles_user ON user_dance_styles(user_id);
 CREATE INDEX idx_user_dance_styles_dance ON user_dance_styles(dance_style_id);
 CREATE INDEX idx_user_media_user ON user_media(user_id);
@@ -434,9 +420,9 @@ INSERT INTO events_event_types (event_id, event_type_id) VALUES (v_event_child, 
 END LOOP;
 
     -- 8. Add Registrations
-    -- Bob goes to the party
-INSERT INTO registrations (event_id, user_id, role_id, status, email) VALUES (v_event_party, v_user_bob, v_role_leader, 'going', 'bob@example.com');
+    -- Bob is registered for the party
+INSERT INTO registrations (event_id, user_id, role_id, status, email) VALUES (v_event_party, v_user_bob, v_role_leader, 'REGISTERED', 'bob@example.com');
 -- Charlie is interested in the party
-INSERT INTO registrations (event_id, user_id, role_id, status, email) VALUES (v_event_party, v_user_charlie, v_role_leader, 'interested', 'charlie@example.com');
+INSERT INTO registrations (event_id, user_id, role_id, status, email) VALUES (v_event_party, v_user_charlie, v_role_leader, 'INTERESTED', 'charlie@example.com');
 
 END $$;

@@ -12,7 +12,6 @@ import com.example.bedanceapp.repository.CurrencyRepository
 import com.example.bedanceapp.repository.EventParentRepository
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
-import com.example.bedanceapp.service.registration.GoogleFormRegistrationStrategy
 import com.example.bedanceapp.specification.EventSpecification
 import com.google.api.client.json.gson.GsonFactory
 import org.springframework.data.domain.Page
@@ -34,7 +33,6 @@ class EventService(
     private val mediaService: MediaService,
     private val currencyRepository: CurrencyRepository,
     private val locationService: LocationService,
-    private val eventParentRepository: EventParentRepository,
     private val eventRegistrationStatsService: EventRegistrationStatsService,
     private val eventRegistrationManager: EventRegistrationManager,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
@@ -81,7 +79,7 @@ class EventService(
         val organizer = OrganizerDto(event.organizerId.toString(), event.organizer?.profile?.firstName, event.organizer?.profile?.lastName)
         // Build address string from location
         val eventId = event.id
-        val registrations = eventId?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.GOING) }
+        val registrations = eventId?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.REGISTERED) }
         val countEventRegistration = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations?: emptyList())
         val countInterested = eventRegistrationStatsService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
 
@@ -95,7 +93,7 @@ class EventService(
         val registrationStatus = userRegistration?.let {
             UserRegistrationStatus(
                 id = it.id.toString(),
-                status = it.status.name
+                status = it.status
             )
         }
 
@@ -131,7 +129,7 @@ class EventService(
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 
         val statusUser = eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
-        val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.GOING)
+        val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED)
         // Get registration stats
         val registrationCount = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations)
         val interestedCount = eventRegistrationStatsService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
@@ -145,7 +143,7 @@ class EventService(
         val registrationStatus = statusUser?.let {
             UserRegistrationStatus(
                 id = it.id.toString(),
-                status = it.status.name
+                status = it.status
             )
         }
 
@@ -170,9 +168,7 @@ class EventService(
                 danceStyles = event.danceStyles.map { CodebookItem(it.id.toString(), it.name) },
                 skillLevel = event.skillLevels.map { CodebookItem(it.id.toString(), it.name) },
                 typeOfEvent = event.typesOfEvents.map { CodebookItem(it.id.toString(), it.name) },
-                maxAttendees = event.maxAttendees,
-                allowWaitlist = registrationSettings?.allowWaitlist ?: false,
-                allowPartnerPairing = registrationSettings?.allowPartnerPairing ?: false
+                maxAttendees = event.maxAttendees
             ),
             description = event.description,
             coverImage = mediaService.mapToDTO(event.promoMedia),
@@ -268,7 +264,7 @@ class EventService(
         // Parse date and time
         val eventDate = date ?: LocalDate.parse(request.basicInfo.date)
         val eventTime = LocalTime.parse(request.basicInfo.time)
-        val endDate = request.basicInfo.endDate?.let { LocalDate.parse(it) }
+        val endDate = if (request.basicInfo.endDate.isNullOrEmpty()) null else LocalDate.parse(request.basicInfo.endDate)
 
         // Fetch currency
         val currency = if (request.basicInfo.currency != null) {
@@ -390,8 +386,6 @@ class EventService(
         }
 
         val requireApproval = publishRequest?.requireApproval ?: false
-        val allowWaitlist = publishRequest?.allowWaitlist ?: false
-        val allowPartnerPairing = publishRequest?.allowPartnerPairing ?: false
 
         // Create or update registration settings
         val registrationSettings = EventRegistrationSettings(
@@ -399,8 +393,6 @@ class EventService(
             registrationMode = registrationMode,
             formId = formId,
             formStructure = null,
-            allowWaitlist = allowWaitlist,
-            allowPartnerPairing = allowPartnerPairing,
             requireApproval = requireApproval
         )
         eventRegistrationSettingsRepository.save(registrationSettings)

@@ -1,5 +1,6 @@
 package com.example.bedanceapp.model
 
+import com.example.bedanceapp.controller.RegistrationStatus
 import java.math.BigDecimal
 
 data class EventDto(
@@ -26,5 +27,5 @@ data class EventDto(
 
 data class UserRegistrationStatus(
     val id: String,
-    val status: String
+    val status: RegistrationStatus
 )

@@ -11,6 +11,7 @@ data class EventRegistrationWithUserDto(
     val status: RegistrationStatus,
     val role: DancerRoleDto?,
     val email: String,
+    val isAnonymous: Boolean = false,
     val userProfile: UserProfileDto?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime

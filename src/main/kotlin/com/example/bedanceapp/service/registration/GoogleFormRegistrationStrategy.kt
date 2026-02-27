@@ -3,11 +3,9 @@ package com.example.bedanceapp.service.registration
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistration
-import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
-import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.UserRepository
 import com.example.bedanceapp.service.EventRegistrationManager
 import com.example.bedanceapp.service.GoogleFormsService
@@ -18,7 +16,6 @@ import com.google.api.services.forms.v1.model.Item
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.module.kotlin.jsonMapper
 import java.time.Instant
 import java.util.UUID
 
@@ -51,20 +48,6 @@ class GoogleFormRegistrationStrategy(
         val form = eventRegistrationSettingsRepository.findByEventId(eventId)?.formStructure
         val headers = parseFormStructure(form)?.headers ?: emptyList()
         val fetchedRegistrations = matchGoogleResponsesToDbRegistrations(eventId)
-
-//        val formId = eventRegistrationSettingsRepository.findByEventId(eventId)?.formId ?: throw IllegalArgumentException("Event ID cannot be null")
-//        val form = googleFormsService.getForm(event.organizer, formId)
-//        val headers = getDynamicHeaders(form)
-//        val fetchedReg = googleFormsService.getFormResponses(event.organizer, formId)
-//        val registrations = eventRegistrationRepository.findByEventId(eventId)
-//        val fetchedRegistrations = fetchedReg.responses?.mapNotNull { googleRegistration ->
-//            val registrationInDb = registrations.find { it.responseId == googleRegistration.responseId }
-//            if (registrationInDb != null) {
-//                mapFormResponseToRegistrationRow(googleRegistration)
-//            } else {
-//                null
-//            }
-//        } ?: emptyList()
 
         return RegistrationData(headers, fetchedRegistrations)
     }
@@ -298,9 +281,10 @@ class GoogleFormRegistrationStrategy(
                 val newRegistration = EventRegistration(
                     eventId = eventId,
                     userId = userId,
-                    status = eventRegistrationManager.assignEventStatus(registrations, eventId, RegistrationStatus.GOING, null, maxAttendees), // Default status for Google Form submissions
+                    status = eventRegistrationManager.assignEventStatus(registrations, eventId, RegistrationStatus.REGISTERED, null, maxAttendees), // Default status for Google Form submissions
                     roleId = null, // Google Forms may not have role info
                     email = email,
+                    isAnonymous = false,
                     responseId = responseId,
                     formResponses = objectMapper.writeValueAsString(RowStructure(registrationRow.data, registrationRow.lastSubmittedTime))
                 )

@@ -45,9 +45,11 @@ data class EventRegistration(
     @JoinColumn(name = "role_id", insertable = false, updatable = false)
     val role: DancerRole? = null,
 
-
     @Column(name = "email", nullable = false)
     val email: String,
+
+    @Column(name = "is_anonymous", nullable = false)
+    val isAnonymous: Boolean = false,
 
     @Column(name = "response_id")
     val responseId: String? = null,

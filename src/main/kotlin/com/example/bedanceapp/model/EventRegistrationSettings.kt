@@ -27,12 +27,6 @@ data class EventRegistrationSettings(
     @Column(name = "form_structure", columnDefinition = "jsonb")
     val formStructure: String? = null,
 
-    @Column(name = "allow_waitlist", nullable = false)
-    val allowWaitlist: Boolean = false,
-
-    @Column(name = "allow_partner_pairing", nullable = false)
-    val allowPartnerPairing: Boolean = false,
-
     @Column(name = "require_approval", nullable = false)
     val requireApproval: Boolean = false
 )

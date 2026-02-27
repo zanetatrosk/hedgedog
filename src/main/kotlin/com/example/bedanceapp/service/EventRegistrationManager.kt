@@ -79,7 +79,7 @@ class EventRegistrationManager(
             return status
         }
         val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
-        val statuses = listOf(RegistrationStatus.GOING, RegistrationStatus.PENDING)
+        val statuses = listOf(RegistrationStatus.REGISTERED, RegistrationStatus.PENDING)
         val registrationsGoingOrPending = registrations.filter { it.status in statuses }
         if( maxAttendees != null ) {
             if( registrationSettings?.registrationMode === RegistrationMode.COUPLE ) {
@@ -97,17 +97,17 @@ class EventRegistrationManager(
             return RegistrationStatus.PENDING
         }
 
-        return RegistrationStatus.GOING
+        return RegistrationStatus.REGISTERED
     }
 
     fun getActiveRegistrations(registrations: List<EventRegistration>): List<EventRegistration> {
-        val statuses = listOf(RegistrationStatus.GOING, RegistrationStatus.PENDING)
+        val statuses = listOf(RegistrationStatus.REGISTERED, RegistrationStatus.PENDING)
         return registrations.filter { it.status in statuses }
     }
 
     fun recalculateRegistrations(eventId: UUID, maxAttendees: Int, registrations: List<EventRegistration>){
         val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
-        val statuses = listOf(RegistrationStatus.GOING, RegistrationStatus.PENDING)
+        val statuses = listOf(RegistrationStatus.REGISTERED, RegistrationStatus.PENDING)
         val activeRegistrations = registrations.filter { it.status in statuses }.toMutableList()
 
         // Get all waitlisted registrations ordered by creation time (FIFO)
@@ -124,7 +124,7 @@ class EventRegistrationManager(
         val targetStatus = if (registrationSettings?.requireApproval == true) {
             RegistrationStatus.PENDING
         } else {
-            RegistrationStatus.GOING
+            RegistrationStatus.REGISTERED
         }
 
         // Collect registrations to update
@@ -200,14 +200,14 @@ class EventRegistrationManager(
         val newStatus = when (action) {
             OrganizerAction.APPROVE -> {
                 when (registration.status) {
-                    RegistrationStatus.PENDING -> RegistrationStatus.GOING
+                    RegistrationStatus.PENDING -> RegistrationStatus.REGISTERED
                     else -> throw IllegalStateException("Cannot approve from ${registration.status}")
                 }
             }
 
             OrganizerAction.REJECT -> {
                 when (registration.status) {
-                    RegistrationStatus.PENDING, RegistrationStatus.GOING -> RegistrationStatus.REJECTED
+                    RegistrationStatus.PENDING, RegistrationStatus.REGISTERED -> RegistrationStatus.REJECTED
                     else -> throw IllegalStateException("Cannot reject from ${registration.status}")
                 }
             }
@@ -217,7 +217,7 @@ class EventRegistrationManager(
         val savedRegistration = eventRegistrationRepository.save(registrationWithNewStatus)
         eventRegistrationRepository.flush()
 
-        // If we rejected a PENDING or GOING registration, recalculate to promote waitlisted registrations
+        // If we rejected a PENDING or REGISTERED registration, recalculate to promote waitlisted registrations
         if (action == OrganizerAction.REJECT) {
             val event = eventRepository.findById(registration.eventId).get()
             val allRegistrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(registration.eventId)
@@ -232,7 +232,7 @@ class EventRegistrationManager(
 
     /**
      * Register a user for an event with a specific status and role
-     * Valid statuses: interested, going, waitlisted
+     * Valid statuses: interested, registered, waitlisted
      */
     @Transactional
     fun registerUserForEvent(
@@ -240,7 +240,8 @@ class EventRegistrationManager(
         userId: UUID,
         status: RegistrationStatus,
         roleId: UUID?,
-        email: String?
+        email: String?,
+        isAnonymous: Boolean
     ): EventRegistration {
         // Check if user is the organizer of this event
         val event = eventRepository.findById(eventId)
@@ -250,7 +251,7 @@ class EventRegistrationManager(
             throw IllegalArgumentException("Event organizer cannot register for their own event")
         }
 
-        if(status != RegistrationStatus.INTERESTED && status != RegistrationStatus.GOING){
+        if(status != RegistrationStatus.INTERESTED && status != RegistrationStatus.REGISTERED){
             throw IllegalArgumentException("Invalid registration status: $status")
         }
 
@@ -286,6 +287,7 @@ class EventRegistrationManager(
             roleId = role.id,
             role = role,
             email = userEmail,
+            isAnonymous = isAnonymous,
             formResponses = null
         )
 
@@ -347,24 +349,29 @@ class EventRegistrationManager(
     }
 
     fun getAllApprovedRegistrations(eventId: UUID): List<EventRegistrationDto>{
-        val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.GOING)
+        val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED)
 
         return registrations.map { registration ->
+            // Fetch user data for level, but only expose user info if not anonymous
             val user = registration.userId?.let { userId ->
                 userRepository.findById(userId).orElse(null)
             }
 
             EventRegistrationDto(
                 registrationId = registration.id.toString(),
-                user = user?.let { u ->
-                    RegistrationUserDto(
-                        userId = u.id.toString(),
-                        name = "${u.profile?.firstName ?: ""} ${u.profile?.lastName ?: ""}".trim(),
-                        avatar = u.profile?.avatarMediaId?.toString()
-                    )
+                user = if (registration.isAnonymous) {
+                    null  // Hide user information when anonymous
+                } else {
+                    user?.let { u ->
+                        RegistrationUserDto(
+                            userId = u.id.toString(),
+                            name = "${u.profile?.firstName ?: ""} ${u.profile?.lastName ?: ""}".trim(),
+                            avatar = u.profile?.avatarMediaId?.toString()
+                        )
+                    }
                 },
-                level = user?.profile?.generalSkillLevel?.name,
-                role = registration.role?.name
+                level = user?.profile?.generalSkillLevel?.name,  // Still show level
+                role = registration.role?.name  // Still show role
             )
         }
     }

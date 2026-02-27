@@ -41,7 +41,7 @@ data class SeriesEventDTO(
 
 enum class RsvpStatus {
     HOSTING,
-    GOING,
+    REGISTERED,
     WAITLISTED,
     INTERESTED
 }

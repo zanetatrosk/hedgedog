@@ -39,9 +39,7 @@ data class EventDetailAdditionalDetails(
     val danceStyles: List<CodebookItem>,
     val skillLevel: List<CodebookItem>,
     val typeOfEvent: List<CodebookItem>,
-    val maxAttendees: Int?,
-    val allowWaitlist: Boolean,
-    val allowPartnerPairing: Boolean
+    val maxAttendees: Int?
 )
 
 data class AttendeeStats(

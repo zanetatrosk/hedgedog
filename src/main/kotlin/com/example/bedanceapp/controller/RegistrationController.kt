@@ -42,7 +42,7 @@ class RegistrationController(
     /**
      * Create or update user's RSVP for an event
      * PUT /api/events/{eventId}/my-rsvp
-     * Valid statuses: interested, going, waitlisted
+     * Valid statuses: interested, registered, waitlisted
      */
     @PutMapping("/{eventId}/registrations")
     fun createOrUpdateMyRsvp(
@@ -55,7 +55,8 @@ class RegistrationController(
             userId = userId,
             status = request.status,
             roleId = request.roleId,
-            email = request.email
+            email = request.email,
+            isAnonymous = request.isAnonymous,
         )
         return ResponseEntity.ok(registration)
     }
@@ -150,13 +151,14 @@ class RegistrationController(
  * Request body for event registration
  */
 data class RegisterEventRequest(
-    val status: RegistrationStatus,  // interested, going, waitlisted
+    val status: RegistrationStatus,  // interested, registered, waitlisted
     val roleId: UUID? = null,  // Leader, Follower, Both
-    val email: String? = null  // Optional - will use user's email from profile if not provided
+    val email: String? = null,  // Optional - will use user's email from profile if not provided
+    val isAnonymous: Boolean = false,
 )
 
 enum class RegistrationStatus {
-    GOING,
+    REGISTERED,
     INTERESTED,
     WAITLISTED,
     CANCELLED,

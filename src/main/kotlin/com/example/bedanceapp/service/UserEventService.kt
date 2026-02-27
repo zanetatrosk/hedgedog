@@ -31,7 +31,7 @@ class UserEventService(
         // Get all registrations for the user
         val allRegistrations = eventRegistrationRepository.findByUserId(userId)
         // Separate registrations by status
-        val goingRegistrations = allRegistrations.filter { it.status == RegistrationStatus.GOING }
+        val registeredRegistrations = allRegistrations.filter { it.status == RegistrationStatus.REGISTERED }
         val waitlistedRegistrations = allRegistrations.filter { it.status == RegistrationStatus.WAITLISTED }
         val interestedRegistrations = allRegistrations.filter { it.status == RegistrationStatus.INTERESTED }
 
@@ -44,21 +44,21 @@ class UserEventService(
             }
 
             StatusFilter.JOINED -> {
-                // Events where user is going (not hosting)
-                goingRegistrations
+                // Events where user is registered (not hosting)
+                registeredRegistrations
                     .map { it.eventId }
                     .filter { it !in organizedEventIds }
             }
 
             StatusFilter.INTERESTED -> {
-                // Events where user is interested (not going, not hosting)
+                // Events where user is interested (not registered, not hosting)
                 interestedRegistrations
                     .map { it.eventId }
                     .filter { it !in organizedEventIds }
             }
 
             null -> {
-                // All events: organized + going + waitlisted + interested
+                // All events: organized + registered + waitlisted + interested
                 (organizedEventIds + allRegistrations.map { it.eventId }).distinct()
             }
         }
@@ -70,8 +70,8 @@ class UserEventService(
         fillMap(userStatusMap, organizedEventIds, RsvpStatus.HOSTING)
 
 
-        // Mark going events as GOING (only if not hosting)
-        fillMap(userStatusMap, goingRegistrations.map { it.eventId }, RsvpStatus.GOING)
+        // Mark registered events as REGISTERED (only if not hosting)
+        fillMap(userStatusMap, registeredRegistrations.map { it.eventId }, RsvpStatus.REGISTERED)
 
         // Mark waitlisted events as WAITLISTED (only if not hosting)
         fillMap(userStatusMap, waitlistedRegistrations.map { it.eventId }, RsvpStatus.WAITLISTED)
@@ -134,7 +134,7 @@ class UserEventService(
     }
 
     private fun mapToSingleEventDTO(event: Event, userStatus: RsvpStatus?): SingleEventDTO {
-        val registrations = event.id?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.GOING) } ?: emptyList()
+        val registrations = event.id?.let { eventRegistrationRepository.findByEventIdAndStatus(it, RegistrationStatus.REGISTERED) } ?: emptyList()
         val stats = eventRegistrationManager.getRegistrationRolesCountsByEventId(registrations)
         val attendeeStats = AttendeeStats(
             going = RegistrationStats(
