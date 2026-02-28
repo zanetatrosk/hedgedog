@@ -6,7 +6,6 @@ import com.example.bedanceapp.service.GoogleOAuth2Service
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
-import java.util.*
 
 /**
  * Authentication Controller using Authorization Code Model
@@ -24,24 +23,22 @@ class AuthenticationController(
 ) {
 
     /**
-     * Exchange Google authorization code for JWT tokens
-     * Frontend should send the authorization code obtained from Google Identity Services
+     * Unified token endpoint for all authentication flows
      *
-     * @param request Contains the authorization code from Google and redirectUri used
-     * @return JWT tokens and user information
+     * Supports:
+     * - authorization_code: Initial login or incremental authorization
+     * - refresh_token: Refresh JWT access tokens
+     *
+     * @param request TokenRequest with grant_type and appropriate parameters
+     * @param user Current authenticated user (optional, required for incremental auth)
+     * @return AuthenticationResponse with JWT tokens and user info
      */
-    @PostMapping("/google/login")
-    fun authenticateWithGoogle(@RequestBody request: AuthenticationRequest): ResponseEntity<AuthenticationResponse> {
-        val response = authenticationService.authenticateWithGoogle(request.code, request.redirectUri)
-        return ResponseEntity.ok(response)
-    }
-
-    /**
-     * Refresh JWT access token using refresh token
-     */
-    @PostMapping("/refresh")
-    fun refreshToken(@RequestBody request: RefreshTokenRequest): ResponseEntity<AuthenticationResponse> {
-        val response = authenticationService.refreshToken(request)
+    @PostMapping("/token")
+    fun token(
+        @RequestBody request: TokenRequest,
+        @AuthenticationPrincipal user: User?
+    ): ResponseEntity<AuthenticationResponse> {
+        val response = authenticationService.processToken(request, user)
         return ResponseEntity.ok(response)
     }
 
@@ -50,42 +47,15 @@ class AuthenticationController(
      */
     @GetMapping("/me")
     fun getCurrentUser(@AuthenticationPrincipal user: User): ResponseEntity<UserDto> {
-        val userDto = UserDto(
+        return ResponseEntity.ok(UserDto(
             id = user.id!!,
             email = user.email,
             provider = user.provider,
             hasProfile = user.profile != null,
             grantedScopes = user.googleScopes?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
-        )
-        return ResponseEntity.ok(userDto)
-    }
-
-    /**
-     * Get available scope groups for incremental authorization
-     * Frontend can use this to know which scopes to request
-     */
-    @GetMapping("/google/available-scopes")
-    fun getAvailableScopes(): ResponseEntity<Map<String, List<String>>> {
-        return ResponseEntity.ok(mapOf(
-            "base" to googleOAuth2Service.baseScopes,
-            "forms" to googleOAuth2Service.formsScopes
         ))
     }
 
-    /**
-     * Handle incremental authorization
-     * Updates user's granted scopes with additional permissions
-     *
-     * @param request Contains the authorization code from incremental auth flow and redirectUri
-     */
-    @PostMapping("/google/incremental-auth")
-    fun handleIncrementalAuth(
-        @AuthenticationPrincipal user: User,
-        @RequestBody request: AuthenticationRequest
-    ): ResponseEntity<Map<String, String>> {
-        authenticationService.updateUserScopes(user.id!!, request.code, request.redirectUri)
-        return ResponseEntity.ok(mapOf("message" to "Scopes updated successfully"))
-    }
 
     /**
      * Logout endpoint
@@ -100,7 +70,7 @@ class AuthenticationController(
         if (revokeGoogle && user?.googleAccessToken != null) {
             try {
                 googleOAuth2Service.revokeToken(user.googleAccessToken!!)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Ignore revocation errors
             }
         }

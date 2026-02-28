@@ -284,7 +284,7 @@ class GoogleFormRegistrationStrategy(
                     status = eventRegistrationManager.assignEventStatus(registrations, eventId, RegistrationStatus.REGISTERED, null, maxAttendees), // Default status for Google Form submissions
                     roleId = null, // Google Forms may not have role info
                     email = email,
-                    isAnonymous = false,
+                    isAnonymous = true,
                     responseId = responseId,
                     formResponses = objectMapper.writeValueAsString(RowStructure(registrationRow.data, registrationRow.lastSubmittedTime))
                 )

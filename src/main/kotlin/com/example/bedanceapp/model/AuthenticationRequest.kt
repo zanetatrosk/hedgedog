@@ -1,10 +1,20 @@
 package com.example.bedanceapp.model
 
 /**
- * Authentication request for Authorization Code Model
- * Based on: https://developers.google.com/identity/oauth2/web/guides/use-code-model
+ * Unified token request supporting multiple grant types
+ * Based on OAuth 2.0 specification
  */
+data class TokenRequest(
+    val grantType: String,  // "authorization_code" (for login/incremental) or "refresh_token"
+    val code: String? = null,  // Authorization code from Google (required if grant_type is authorization_code)
+    val redirectUri: String? = null,  // Redirect URI used in auth request (required if grant_type is authorization_code)
+    val refreshToken: String? = null  // JWT refresh token (required if grant_type is refresh_token)
+)
+
+// Keep for backward compatibility
+@Deprecated("Use TokenRequest instead", ReplaceWith("TokenRequest"))
 data class AuthenticationRequest(
-    val code: String,  // Authorization code from Google Identity Services
-    val redirectUri: String  // Redirect URI used in the authorization request (e.g., "postmessage" for code model or actual URI)
+    val code: String,
+    val redirectUri: String,
+    val grantType: String = "login"
 )
