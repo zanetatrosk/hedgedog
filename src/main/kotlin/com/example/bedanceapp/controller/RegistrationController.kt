@@ -76,8 +76,12 @@ class RegistrationController(
     }
 
     /**
-     * Sync event's Google Form registration data
-     * POST /api/events/{eventId}/sync-form
+     * Manually sync event's Google Form registration data
+     * POST /api/events/{eventId}/registrations/synchronization
+     *
+     * Note: Google Forms are automatically synced every 10 minutes.
+     * This endpoint is available for manual/immediate sync if needed.
+     *
      * This fetches the latest form structure from Google Forms and updates the cached structure
      */
     @PostMapping("/{eventId}/registrations/synchronization")
@@ -86,6 +90,9 @@ class RegistrationController(
         @RequestHeader("X-User-Id") organizerId: UUID
     ): ResponseEntity<Map<String, String>> {
         return try {
+            // Verify organizer permission
+            eventRegistrationManager.assertOrganizer(eventId, organizerId)
+
             eventRegistrationManager.syncGoogleFormData(eventId)
             ResponseEntity.ok(mapOf(
                 "message" to "Google Form data synced successfully",
@@ -94,7 +101,7 @@ class RegistrationController(
         } catch (e: IllegalArgumentException) {
             ResponseEntity.badRequest()
                 .body(mapOf("message" to (e.message ?: "Failed to sync form data")))
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(mapOf("message" to "An error occurred while syncing form data"))
         }
