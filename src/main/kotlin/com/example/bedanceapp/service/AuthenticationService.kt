@@ -16,13 +16,23 @@ class AuthenticationService(
     private val profileRepository: UserProfileRepository
 ) {
 
+    /**
+     * Authenticate user with Google using Authorization Code Model
+     * Based on: https://developers.google.com/identity/oauth2/web/guides/use-code-model
+     *
+     * @param code Authorization code received from Google Identity Services on frontend
+     * @param redirectUri The redirect URI used in the authorization request
+     * @return AuthenticationResponse with JWT tokens and user info
+     */
     @Transactional
     fun authenticateWithGoogle(code: String, redirectUri: String): AuthenticationResponse {
-        // Exchange authorization code for tokens
+        // Exchange authorization code for tokens (including ID token)
+        // Use the redirect_uri provided by frontend (typically "postmessage" for Authorization Code Model)
         val tokenResponse = googleOAuth2Service.exchangeCodeForTokens(code, redirectUri)
 
-        // Get user info from Google
-        val userInfo = googleOAuth2Service.getUserInfo(tokenResponse.accessToken)
+        // Verify and extract user info from ID token (no additional API call needed)
+        val idToken = googleOAuth2Service.verifyIdToken(tokenResponse.get("id_token") as String)
+        val userInfo = googleOAuth2Service.getUserInfoFromIdToken(idToken)
 
         // Find or create user
         var user = userRepository.findByProviderAndProviderId("google", userInfo.id)
@@ -41,7 +51,7 @@ class AuthenticationService(
             )
             user = userRepository.saveAndFlush(user)
 
-            // Create profile - userId will be derived from user relationship via @MapsId
+            // Create profile with info from ID token
             val profile = UserProfile(
                 user = user,
                 firstName = userInfo.givenName,
@@ -61,7 +71,7 @@ class AuthenticationService(
             user = userRepository.save(updatedUser)
         }
 
-        // Generate JWT tokens
+        // Generate JWT tokens for our application
         val accessToken = jwtService.generateAccessToken(user.id!!, user.email)
         val refreshToken = jwtService.generateRefreshToken(user.id!!, user.email)
 
@@ -109,19 +119,10 @@ class AuthenticationService(
         )
     }
 
-    fun getAuthorizationUrl(): GoogleAuthUrlResponse {
-        val authUrl = googleOAuth2Service.getAuthorizationUrl()
-        return GoogleAuthUrlResponse(authUrl)
-    }
-
-    fun getIncrementalAuthUrl(userId: UUID, scopes: List<String>): GoogleAuthUrlResponse {
-        val user = userRepository.findById(userId)
-            .orElseThrow { IllegalArgumentException("User not found") }
-
-        val authUrl = googleOAuth2Service.getIncrementalAuthUrl(user.email, scopes)
-        return GoogleAuthUrlResponse(authUrl)
-    }
-
+    /**
+     * Update user's scopes after incremental authorization
+     * Uses the code model for incremental authorization
+     */
     @Transactional
     fun updateUserScopes(userId: UUID, code: String, redirectUri: String) {
         val tokenResponse = googleOAuth2Service.exchangeCodeForTokens(code, redirectUri)

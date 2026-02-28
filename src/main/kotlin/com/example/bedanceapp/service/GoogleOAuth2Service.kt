@@ -1,19 +1,24 @@
 package com.example.bedanceapp.service
 
 import com.google.api.client.auth.oauth2.TokenResponse
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
-import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
-import com.google.api.client.http.GenericUrl
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
-import com.google.api.services.oauth2.Oauth2
-import com.google.api.services.oauth2.model.Userinfo
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.io.StringReader
-import kotlin.collections.set
 
+/**
+ * Google OAuth2 Service using the Authorization Code Model
+ * Based on: https://developers.google.com/identity/oauth2/web/guides/use-code-model
+ *
+ * This service handles:
+ * - Exchanging authorization codes for tokens
+ * - Verifying ID tokens
+ * - Refreshing access tokens
+ * - Managing OAuth2 scopes
+ */
 @Service
 class GoogleOAuth2Service {
 
@@ -23,114 +28,116 @@ class GoogleOAuth2Service {
     @Value("\${spring.security.oauth2.client.registration.google.client-secret}")
     private lateinit var clientSecret: String
 
-    @Value("\${spring.security.oauth2.client.registration.google.redirect-uri}")
-    private lateinit var redirectUri: String
 
     private val httpTransport = NetHttpTransport()
     private val jsonFactory = GsonFactory.getDefaultInstance()
 
-    // Base scopes for authentication
-    private val baseScopes = listOf(
-        "openid",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/userinfo.profile"
-    )
+    // Scopes configuration
+    companion object {
+        const val SCOPE_EMAIL = "https://www.googleapis.com/auth/userinfo.email"
+        const val SCOPE_PROFILE = "https://www.googleapis.com/auth/userinfo.profile"
+        const val SCOPE_OPENID = "openid"
+        const val SCOPE_FORMS_BODY = "https://www.googleapis.com/auth/forms.body.readonly"
+        const val SCOPE_FORMS_RESPONSES = "https://www.googleapis.com/auth/forms.responses.readonly"
+    }
 
-    // Additional scopes for Google Forms (for incremental authorization)
-    val formsScopes = listOf(
-        "https://www.googleapis.com/auth/forms.body.readonly",
-        "https://www.googleapis.com/auth/forms.responses.readonly"
-    )
+    val baseScopes = listOf(SCOPE_OPENID, SCOPE_EMAIL, SCOPE_PROFILE)
+    val formsScopes = listOf(SCOPE_FORMS_BODY, SCOPE_FORMS_RESPONSES)
 
-    private fun getFlow(scopes: List<String>): GoogleAuthorizationCodeFlow {
-        val clientSecretsJson = """
-            {
-                "installed": {
-                    "client_id": "$clientId",
-                    "client_secret": "$clientSecret"
-                }
-            }
-        """.trimIndent()
-
-        val clientSecrets = GoogleClientSecrets.load(
-            jsonFactory,
-            StringReader(clientSecretsJson)
-        )
-
-        return GoogleAuthorizationCodeFlow.Builder(
+    /**
+     * Exchange authorization code for access token and refresh token
+     * Uses the code model: https://developers.google.com/identity/oauth2/web/guides/use-code-model
+     *
+     * @param code Authorization code received from Google Identity Services
+     * @param redirectUri The redirect URI to use (use "postmessage" for code model)
+     * @return TokenResponse containing access_token, refresh_token, id_token, etc.
+     */
+    fun exchangeCodeForTokens(code: String, redirectUri: String): TokenResponse {
+        return GoogleAuthorizationCodeTokenRequest(
             httpTransport,
             jsonFactory,
-            clientSecrets,
-            scopes
-        ).setAccessType("offline")
-            .build()
-    }
-
-    fun getAuthorizationUrl(scopes: List<String> = baseScopes, state: String? = null): String {
-        val flow = getFlow(scopes)
-        val url = flow.newAuthorizationUrl()
-            .setRedirectUri(redirectUri.replace("{baseUrl}", "http://localhost:8080"))
-
-        if (state != null) {
-            url.state = state
-        }
-        url.set("include_granted_scopes", "true")  // Always include
-
-        return url.build()
-    }
-
-    fun exchangeCodeForTokens(code: String, redirectUri: String): GoogleTokenResponse {
-        val flow = getFlow(baseScopes)
-        return flow.newTokenRequest(code)
-            .setRedirectUri(redirectUri)
-            .execute() as GoogleTokenResponse
-    }
-
-    fun getUserInfo(accessToken: String): Userinfo {
-        val credential = com.google.api.client.googleapis.auth.oauth2.GoogleCredential()
-            .setAccessToken(accessToken)
-
-        val oauth2 = Oauth2.Builder(httpTransport, jsonFactory, credential)
-            .setApplicationName("be-dance-app")
-            .build()
-
-        return oauth2.userinfo().get().execute()
-    }
-
-    fun refreshAccessToken(refreshToken: String): TokenResponse {
-        val clientSecretsJson = """
-            {
-                "installed": {
-                    "client_id": "$clientId",
-                    "client_secret": "$clientSecret"
-                }
-            }
-        """.trimIndent()
-
-        val clientSecrets = GoogleClientSecrets.load(
-            jsonFactory,
-            StringReader(clientSecretsJson)
-        )
-
-        return com.google.api.client.auth.oauth2.RefreshTokenRequest(
-            httpTransport,
-            jsonFactory,
-            GenericUrl("https://oauth2.googleapis.com/token"),
-            refreshToken
-        ).setClientAuthentication(
-            com.google.api.client.http.BasicAuthentication(
-                clientSecrets.details.clientId,
-                clientSecrets.details.clientSecret
-            )
+            "https://oauth2.googleapis.com/token",
+            clientId,
+            clientSecret,
+            code,
+            redirectUri
         ).execute()
     }
 
-    fun getIncrementalAuthUrl(userId: String, additionalScopes: List<String>): String {
-        // For incremental authorization, we pass the user hint and additional scopes
-        return getAuthorizationUrl(
-            scopes = additionalScopes,
-            state = "incremental_$userId"
-        ) + "&login_hint=$userId"
+    /**
+     * Verify and decode Google ID token
+     *
+     * @param idTokenString The ID token string from Google
+     * @return GoogleIdToken containing user information
+     */
+    fun verifyIdToken(idTokenString: String): GoogleIdToken {
+        val verifier = GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
+            .setAudience(listOf(clientId))
+            .build()
+
+        val idToken = verifier.verify(idTokenString)
+            ?: throw IllegalArgumentException("Invalid ID token")
+
+        return idToken
+    }
+
+    /**
+     * Extract user information from ID token payload
+     */
+    fun getUserInfoFromIdToken(idToken: GoogleIdToken): UserInfoFromToken {
+        val payload = idToken.payload
+        return UserInfoFromToken(
+            id = payload.subject,
+            email = payload.email,
+            emailVerified = payload.emailVerified,
+            name = payload["name"] as? String,
+            givenName = payload["given_name"] as? String,
+            familyName = payload["family_name"] as? String,
+            picture = payload["picture"] as? String
+        )
+    }
+
+    /**
+     * Refresh access token using refresh token
+     *
+     * @param refreshToken The refresh token
+     * @return TokenResponse with new access token
+     */
+    fun refreshAccessToken(refreshToken: String): TokenResponse {
+        return com.google.api.client.auth.oauth2.RefreshTokenRequest(
+            httpTransport,
+            jsonFactory,
+            com.google.api.client.http.GenericUrl("https://oauth2.googleapis.com/token"),
+            refreshToken
+        ).setClientAuthentication(
+            com.google.api.client.http.BasicAuthentication(clientId, clientSecret)
+        ).execute()
+    }
+
+    /**
+     * Revoke a token (access or refresh token)
+     */
+    fun revokeToken(token: String) {
+        val url = "https://oauth2.googleapis.com/revoke?token=$token"
+        val request = httpTransport.createRequestFactory()
+            .buildPostRequest(
+                com.google.api.client.http.GenericUrl(url),
+                null
+            )
+        request.execute()
     }
 }
+
+/**
+ * User information extracted from ID token
+ */
+data class UserInfoFromToken(
+    val id: String,
+    val email: String,
+    val emailVerified: Boolean,
+    val name: String?,
+    val givenName: String?,
+    val familyName: String?,
+    val picture: String?
+)
 
