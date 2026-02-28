@@ -43,7 +43,8 @@ class EventRegistrationDataService(
             eventName = event.eventName,
             date = event.eventDate.toString(),
             recurringDates = eventService.getUpcomingDates(event.parentEventId),
-            registrationData = registrationData
+            registrationData = registrationData,
+            registrationMode = registrationMode
         )
     }
 }
@@ -53,7 +54,8 @@ data class StatsResponse(
     val eventName: String,
     val date: String,
     val recurringDates: List<RecurringDateInfo>,
-    val registrationData: RegistrationData
+    val registrationData: RegistrationData,
+    val registrationMode: RegistrationMode,
 )
 
 
