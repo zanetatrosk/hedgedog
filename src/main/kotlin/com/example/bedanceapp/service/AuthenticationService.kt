@@ -83,19 +83,12 @@ class AuthenticationService(
         } else {
             // Update existing user's tokens and scopes
             val isIncrementalAuth = currentUser != null && currentUser.id == user.id
-            val updatedScopes = if (isIncrementalAuth) {
-                // Merge scopes for incremental authorization
-                mergeScopes(user.googleScopes, tokenResponse.scope)
-            } else {
-                // Replace scopes for regular login
-                tokenResponse.scope
-            }
 
             val updatedUser = user.copy(
                 googleAccessToken = tokenResponse.accessToken,
                 googleRefreshToken = tokenResponse.refreshToken ?: user.googleRefreshToken,
                 googleTokenExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.expiresInSeconds),
-                googleScopes = updatedScopes,
+                googleScopes = tokenResponse.scope,
                 lastLoginAt = OffsetDateTime.now()
             )
             user = userRepository.save(updatedUser)
@@ -149,45 +142,9 @@ class AuthenticationService(
         )
     }
 
-    // Legacy methods for backward compatibility
-
-    /**
-     * @deprecated Use processToken with TokenRequest instead
-     */
-    @Deprecated("Use processToken instead")
-    @Transactional
-    fun authenticateWithGoogle(code: String, redirectUri: String): AuthenticationResponse {
-        return processToken(TokenRequest(grantType = "authorization_code", code = code, redirectUri = redirectUri))
-    }
-
-    /**
-     * @deprecated Use processToken with TokenRequest instead
-     */
-    @Deprecated("Use processToken instead")
-    @Transactional
-    fun refreshToken(refreshTokenRequest: RefreshTokenRequest): AuthenticationResponse {
-        return processToken(TokenRequest(grantType = "refresh_token", refreshToken = refreshTokenRequest.refreshToken))
-    }
-
-    /**
-     * @deprecated Use processToken with TokenRequest instead
-     */
-    @Deprecated("Use processToken instead")
-    @Transactional
-    fun updateUserScopes(userId: UUID, code: String, redirectUri: String) {
-        val user = userRepository.findById(userId).orElseThrow { IllegalArgumentException("User not found") }
-        processToken(TokenRequest(grantType = "authorization_code", code = code, redirectUri = redirectUri), user)
-    }
-
     private fun parseScopes(scopes: String?): List<String> {
         return scopes?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
     }
 
-    private fun mergeScopes(existingScopes: String?, newScopes: String?): String {
-        val existing = parseScopes(existingScopes).toMutableSet()
-        val new = parseScopes(newScopes)
-        existing.addAll(new)
-        return existing.joinToString(" ")
-    }
 }
 

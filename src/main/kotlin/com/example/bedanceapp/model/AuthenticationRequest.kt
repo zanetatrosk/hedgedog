@@ -10,11 +10,3 @@ data class TokenRequest(
     val redirectUri: String? = null,  // Redirect URI used in auth request (required if grant_type is authorization_code)
     val refreshToken: String? = null  // JWT refresh token (required if grant_type is refresh_token)
 )
-
-// Keep for backward compatibility
-@Deprecated("Use TokenRequest instead", ReplaceWith("TokenRequest"))
-data class AuthenticationRequest(
-    val code: String,
-    val redirectUri: String,
-    val grantType: String = "login"
-)
