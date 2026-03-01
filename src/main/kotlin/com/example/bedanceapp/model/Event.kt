@@ -60,6 +60,9 @@ data class Event(
     @Enumerated(EnumType.STRING)
     val status: EventStatus,
 
+    @Column(name = "facebook_event_url", length = 500)
+    val facebookEventUrl: String? = null,
+
     @Column(name = "created_at", updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 

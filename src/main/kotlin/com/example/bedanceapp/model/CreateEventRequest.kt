@@ -19,6 +19,7 @@ data class BasicInfoRequest(
     val endDate: String?,
     val isRecurring: Boolean?,
     val recurrenceType: RecurrenceType?,
+    val recurrenceEndDate: String?,  // ISO date format for when recurring events should end
     val price: BigDecimal?,
     val currency: String?
 )
@@ -38,7 +39,8 @@ data class AdditionalDetailsRequest(
     val danceStyles: List<UUID>,      // List of dance style IDs
     val skillLevel: List<UUID>,       // List of skill level IDs
     val typeOfEvent: List<UUID>,      // List of event type IDs
-    val maxAttendees: Int?
+    val maxAttendees: Int?,
+    val facebookEventUrl: String?     // Facebook event URL
     // Note: registrationMode, formId, allowWaitlist, allowPartnerPairing, and requireApproval
     // can only be set when publishing the event via PATCH /api/events/{id}/publish
 )

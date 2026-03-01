@@ -172,7 +172,7 @@ class EventService(
             ),
             description = event.description,
             coverImage = mediaService.mapToDTO(event.promoMedia),
-            facebookEventUrl = null, // TODO: Add to Event model when needed
+            facebookEventUrl = event.facebookEventUrl,
             media = event.media.mapNotNull { mediaService.mapToDTO(it) },
             attendeeStats = AttendeeStats(
                 going = RegistrationStats(
@@ -333,6 +333,7 @@ class EventService(
             currency = currency,
             price = request.basicInfo.price,
             maxAttendees = request.additionalDetails?.maxAttendees,
+            facebookEventUrl = request.additionalDetails?.facebookEventUrl,
             status = status ?: EventStatus.DRAFT,
             danceStyles = danceStyles,
             skillLevels = skillLevels,

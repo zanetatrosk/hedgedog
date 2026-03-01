@@ -142,6 +142,7 @@ CREATE TABLE events (
                         max_attendees INTEGER,
                         promo_media_id UUID,
                         status VARCHAR(20) NOT NULL,
+                        facebook_event_url VARCHAR(500),
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

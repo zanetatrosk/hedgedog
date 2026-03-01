@@ -50,17 +50,25 @@ class RecurringEventService(
         validateRecurringEventRequest(request)
 
         val startDate = LocalDate.parse(request.basicInfo.date)
-        val endDate = LocalDate.parse(request.basicInfo.endDate!!)
+
+        // Use recurrenceEndDate if provided, otherwise fall back to endDate
+        // This is for generating the recurrence dates, not for storing
+        val recurrenceEndDateString = if (!request.basicInfo.recurrenceEndDate.isNullOrBlank()) {
+            request.basicInfo.recurrenceEndDate
+        } else {
+            throw IllegalArgumentException("Recurrence end date is required for recurring events")
+        }
+        val recurrenceEndDate = LocalDate.parse(recurrenceEndDateString)
         val recurrenceType = request.basicInfo.recurrenceType!!
 
         // Generate dates based on recurrence type
-        val dates = recurringEventGenerator.generateDates(startDate, endDate, recurrenceType)
+        val dates = recurringEventGenerator.generateDates(startDate, recurrenceEndDate, recurrenceType)
 
         if( dates.size > MAX_RECURRING_EVENTS) {
             throw IllegalArgumentException("You cannot generate more then $MAX_RECURRING_EVENTS recurring events")
         }
 
-        // Create parent event for grouping
+        // Create parent event for grouping (don't store recurrence end date)
         val parent = eventParentRepository.save(
             EventParent(name = request.basicInfo.eventName)
         )
@@ -79,7 +87,7 @@ class RecurringEventService(
      * Validates that a recurring event request has all required fields.
      */
     private fun validateRecurringEventRequest(request: CreateEventRequest) {
-        if (request.basicInfo.endDate.isNullOrBlank()) {
+        if (request.basicInfo.recurrenceEndDate.isNullOrBlank()) {
             throw IllegalArgumentException("End date is required for recurring events")
         }
 
@@ -88,7 +96,7 @@ class RecurringEventService(
         }
 
         val startDate = LocalDate.parse(request.basicInfo.date)
-        val endDate = LocalDate.parse(request.basicInfo.endDate)
+        val endDate = LocalDate.parse(request.basicInfo.recurrenceEndDate)
 
         if (startDate.isAfter(endDate)) {
             throw IllegalArgumentException("Start date must be before or equal to end date")
