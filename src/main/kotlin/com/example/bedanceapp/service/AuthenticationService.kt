@@ -81,8 +81,6 @@ class AuthenticationService(
             profileRepository.saveAndFlush(profile)
 
         } else {
-            // Update existing user's tokens and scopes
-            val isIncrementalAuth = currentUser != null && currentUser.id == user.id
 
             val updatedUser = user.copy(
                 googleAccessToken = tokenResponse.accessToken,
