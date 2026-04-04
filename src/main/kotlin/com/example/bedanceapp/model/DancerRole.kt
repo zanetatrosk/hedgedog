@@ -2,7 +2,7 @@ package com.example.bedanceapp.model
 import java.util.UUID
 import jakarta.persistence.*
 
-@Table(name = "dancer_role")
+@Table(name = "dancer_roles")
 @Entity
 data class DancerRole(
     @GeneratedValue(strategy = GenerationType.AUTO)

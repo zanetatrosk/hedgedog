@@ -113,19 +113,6 @@ class GoogleOAuth2Service {
             com.google.api.client.http.BasicAuthentication(clientId, clientSecret)
         ).execute()
     }
-
-    /**
-     * Revoke a token (access or refresh token)
-     */
-    fun revokeToken(token: String) {
-        val url = "https://oauth2.googleapis.com/revoke?token=$token"
-        val request = httpTransport.createRequestFactory()
-            .buildPostRequest(
-                com.google.api.client.http.GenericUrl(url),
-                null
-            )
-        request.execute()
-    }
 }
 
 /**

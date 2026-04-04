@@ -4,9 +4,9 @@ DROP TABLE IF EXISTS media CASCADE;
 DROP TABLE IF EXISTS registrations CASCADE;
 DROP TABLE IF EXISTS event_registration CASCADE;
 DROP TABLE IF EXISTS event_registration_settings CASCADE;
-DROP TABLE IF EXISTS event_type CASCADE;
+DROP TABLE IF EXISTS event_types CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
-DROP TABLE IF EXISTS dancer_role CASCADE;
+DROP TABLE IF EXISTS dancer_roles CASCADE;
 DROP TABLE IF EXISTS skill_levels CASCADE;
 DROP TABLE IF EXISTS user_profiles CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
@@ -17,14 +17,12 @@ DROP TABLE IF EXISTS user_dance_interests CASCADE;
 DROP TABLE IF EXISTS user_dance_styles CASCADE;
 DROP TABLE IF EXISTS events_event_types CASCADE;
 DROP TABLE IF EXISTS currencies CASCADE;
-DROP TABLE IF EXISTS event_parent CASCADE;
+DROP TABLE IF EXISTS event_parents CASCADE;
 DROP TABLE IF EXISTS events_media CASCADE;
 DROP TABLE IF EXISTS user_media CASCADE;
 DROP TABLE IF EXISTS profile_media CASCADE;
 DROP TABLE IF EXISTS event_media CASCADE;
 DROP TABLE IF EXISTS locations CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
-DROP TABLE IF EXISTS notifications_users CASCADE;
 
 -- End of removing
 
@@ -60,11 +58,11 @@ CREATE TABLE user_profiles (
 ALTER TABLE user_profiles ADD CONSTRAINT pk_user_profiles PRIMARY KEY (user_id);
 
 -- Role table (Leader/Follower/Both)
-CREATE TABLE dancer_role (
+CREATE TABLE dancer_roles (
                              id UUID NOT NULL DEFAULT gen_random_uuid(),
                              name VARCHAR(50) NOT NULL
 );
-ALTER TABLE dancer_role ADD CONSTRAINT pk_dancer_role PRIMARY KEY (id);
+ALTER TABLE dancer_roles ADD CONSTRAINT pk_dancer_roles PRIMARY KEY (id);
 -- Dance styles lookup table
 CREATE TABLE dance_styles (
                               id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -95,20 +93,20 @@ ALTER TABLE skill_levels ADD CONSTRAINT uc_skill_levels_name UNIQUE (name);
 ALTER TABLE skill_levels ADD CONSTRAINT uc_skill_levels_order UNIQUE (level_order);
 
 -- Event types lookup table
-CREATE TABLE event_type (
+CREATE TABLE event_types (
                             id UUID NOT NULL DEFAULT gen_random_uuid(),
                             name VARCHAR(100) NOT NULL,
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-ALTER TABLE event_type ADD CONSTRAINT pk_event_type PRIMARY KEY (id);
-ALTER TABLE event_type ADD CONSTRAINT uc_event_type_name UNIQUE (name);
+ALTER TABLE event_types ADD CONSTRAINT pk_event_types PRIMARY KEY (id);
+ALTER TABLE event_types ADD CONSTRAINT uc_event_types_name UNIQUE (name);
 
 -- Event parent table (for recurring events)
-CREATE TABLE event_parent (
+CREATE TABLE event_parents (
                               id UUID NOT NULL DEFAULT gen_random_uuid(),
                               name VARCHAR(255) NOT NULL
 );
-ALTER TABLE event_parent ADD CONSTRAINT pk_event_parent PRIMARY KEY (id);
+ALTER TABLE event_parents ADD CONSTRAINT pk_event_parents PRIMARY KEY (id);
 
 -- Location table
 CREATE TABLE locations (
@@ -237,21 +235,21 @@ ALTER TABLE events_media ADD CONSTRAINT pk_events_media PRIMARY KEY (event_id, m
 
 -- user_profiles references
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
-ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
+ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_role FOREIGN KEY (role_id) REFERENCES dancer_roles (id) ON DELETE SET NULL;
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_general_skill FOREIGN KEY (general_skill_level_id) REFERENCES skill_levels (id) ON DELETE SET NULL;
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_avatar_media FOREIGN KEY (avatar_media_id) REFERENCES media (id) ON DELETE SET NULL;
 
 -- events references
 ALTER TABLE events ADD CONSTRAINT fk_events_organizer FOREIGN KEY (organizer_id) REFERENCES users (id) ON DELETE CASCADE;
-ALTER TABLE events ADD CONSTRAINT fk_events_parent FOREIGN KEY (parent_event_id) REFERENCES event_parent (id) ON DELETE SET NULL;
+ALTER TABLE events ADD CONSTRAINT fk_events_parent FOREIGN KEY (parent_event_id) REFERENCES event_parents (id) ON DELETE SET NULL;
 ALTER TABLE events ADD CONSTRAINT fk_events_currency FOREIGN KEY (currency_code) REFERENCES currencies (code) ON DELETE SET NULL;
 ALTER TABLE events ADD CONSTRAINT fk_events_promo_media FOREIGN KEY (promo_media_id) REFERENCES media (id) ON DELETE SET NULL;
 ALTER TABLE events ADD CONSTRAINT fk_events_location FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE SET NULL;
 
 -- registrations references
-ALTER TABLE registrations ADD CONSTRAINT fk_registrations_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
-ALTER TABLE registrations ADD CONSTRAINT fk_registrations_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
-ALTER TABLE registrations ADD CONSTRAINT fk_registrations_role FOREIGN KEY (role_id) REFERENCES dancer_role (id) ON DELETE SET NULL;
+ALTER TABLE registrations ADD CONSTRAINT fk_registrations_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
+ALTER TABLE registrations ADD CONSTRAINT fk_registrations_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+ALTER TABLE registrations ADD CONSTRAINT fk_registrations_role FOREIGN KEY (role_id) REFERENCES dancer_roles (id) ON DELETE SET NULL;
 
 
 -- user_media references
@@ -267,6 +265,9 @@ ALTER TABLE events_skill_levels ADD CONSTRAINT fk_events_skill_levels_skill_leve
 
 ALTER TABLE user_dance_styles ADD CONSTRAINT fk_user_dance_styles_users FOREIGN KEY (user_id) REFERENCES user_profiles (user_id) ON DELETE CASCADE;
 ALTER TABLE user_dance_styles ADD CONSTRAINT fk_user_dance_styles_dance_styles FOREIGN KEY (dance_style_id) REFERENCES dance_styles (id) ON DELETE CASCADE;
+
+ALTER TABLE events_event_types ADD CONSTRAINT fk_events_event_types_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
+ALTER TABLE events_event_types ADD CONSTRAINT fk_events_event_types_event_types FOREIGN KEY (event_type_id) REFERENCES event_types (id) ON DELETE CASCADE;
 
 ALTER TABLE events_media ADD CONSTRAINT fk_events_media_events FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE;
 ALTER TABLE events_media ADD CONSTRAINT fk_events_media_media FOREIGN KEY (media_id) REFERENCES media (id) ON DELETE CASCADE;
@@ -314,7 +315,7 @@ INSERT INTO currencies (code, name, symbol) VALUES
                                                 ('GBP', 'British Pound', '£');
 
 -- Insert predefined event types
-INSERT INTO event_type (name) VALUES
+INSERT INTO event_types (name) VALUES
                                   ('Social'),
                                   ('Workshop'),
                                   ('Class'),
@@ -327,7 +328,7 @@ INSERT INTO event_type (name) VALUES
                                   ('Bootcamp');
 
 -- Insert predefined roles (Leader/Follower/Both)
-INSERT INTO dancer_role (name) VALUES
+INSERT INTO dancer_roles (name) VALUES
                                    ('Leader'),
                                    ('Follower'),
                                    ('Both');
@@ -362,13 +363,13 @@ v_role_leader UUID;
 
 BEGIN
     -- 1. Fetch Lookup IDs
-SELECT id INTO v_role_leader FROM dancer_role WHERE name = 'Leader' LIMIT 1;
-SELECT id INTO v_role_follower FROM dancer_role WHERE name = 'Follower' LIMIT 1;
+SELECT id INTO v_role_leader FROM dancer_roles WHERE name = 'Leader' LIMIT 1;
+SELECT id INTO v_role_follower FROM dancer_roles WHERE name = 'Follower' LIMIT 1;
 SELECT id INTO v_level_inter FROM skill_levels WHERE name = 'Intermediate' LIMIT 1;
 SELECT id INTO v_style_salsa FROM dance_styles WHERE name = 'Salsa' LIMIT 1;
 SELECT id INTO v_style_bachata FROM dance_styles WHERE name = 'Bachata' LIMIT 1;
-SELECT id INTO v_type_party FROM event_type WHERE name = 'Party' LIMIT 1;
-SELECT id INTO v_type_class FROM event_type WHERE name = 'Class' LIMIT 1;
+SELECT id INTO v_type_party FROM event_types WHERE name = 'Party' LIMIT 1;
+SELECT id INTO v_type_class FROM event_types WHERE name = 'Class' LIMIT 1;
 
 -- 2. Create Users
 INSERT INTO users (email, provider, provider_id) VALUES
@@ -404,7 +405,7 @@ INSERT INTO dance_styles_events (dance_style_id, event_id) VALUES (v_style_bacha
 INSERT INTO events_event_types (event_id, event_type_id) VALUES (v_event_party, v_type_party);
 
 -- 6. Create Recurring Parent Event (Salsa Class)
-INSERT INTO event_parent (name) VALUES ('Weekly Salsa Foundations') RETURNING id INTO v_event_parent;
+INSERT INTO event_parents (name) VALUES ('Weekly Salsa Foundations') RETURNING id INTO v_event_parent;
 
 -- 7. Create Occurrences
 FOR i IN 0..3 LOOP

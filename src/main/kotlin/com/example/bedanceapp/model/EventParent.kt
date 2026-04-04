@@ -8,7 +8,7 @@ import jakarta.persistence.Table
 import java.util.UUID
 
 @Entity
-@Table(name = "event_parent")
+@Table(name = "event_parents")
 data class EventParent(
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

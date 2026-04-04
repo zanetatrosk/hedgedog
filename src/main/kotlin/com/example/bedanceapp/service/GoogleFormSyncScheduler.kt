@@ -1,5 +1,6 @@
 package com.example.bedanceapp.service
 
+import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import org.slf4j.LoggerFactory
@@ -31,7 +32,7 @@ class GoogleFormSyncScheduler(
         try {
             // Find all events with GOOGLE_FORM registration mode that have a formId
             val googleFormEvents = eventRegistrationSettingsRepository.findAll()
-                .filter { it.registrationMode == RegistrationMode.GOOGLE_FORM && !it.formId.isNullOrBlank() }
+                .filter { it.registrationMode == RegistrationMode.GOOGLE_FORM && !it.formId.isNullOrBlank() && it.event?.status == EventStatus.PUBLISHED }
 
             logger.info("Found ${googleFormEvents.size} events with Google Forms to sync")
 

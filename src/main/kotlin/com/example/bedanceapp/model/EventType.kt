@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
-@Table(name = "event_type")
+@Table(name = "event_types")
 data class EventType(
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

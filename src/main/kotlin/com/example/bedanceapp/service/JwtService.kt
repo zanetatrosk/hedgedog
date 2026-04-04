@@ -17,9 +17,6 @@ class JwtService {
     @Value("\${jwt.expiration}")
     private var expiration: Long = 0
 
-    @Value("\${jwt.refresh-expiration}")
-    private var refreshExpiration: Long = 0
-
     private fun getSigningKey(): SecretKey {
         return Keys.hmacShaKeyFor(secret.toByteArray())
     }
@@ -28,9 +25,6 @@ class JwtService {
         return generateToken(userId, email, expiration)
     }
 
-    fun generateRefreshToken(userId: UUID, email: String): String {
-        return generateToken(userId, email, refreshExpiration)
-    }
 
     private fun generateToken(userId: UUID, email: String, expirationTime: Long): String {
         val now = Date()

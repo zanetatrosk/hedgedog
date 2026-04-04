@@ -317,7 +317,7 @@ class GoogleFormRegistrationStrategy(
                     } catch (e: Exception) {
                         logger.warn("Failed to compare timestamps for registration ${existingRegistration.id}: existing=$existingTimestamp, new=$lastUpdated", e)
                     }
-                } else if (lastUpdated != null && existingTimestamp == null) {
+                } else if (lastUpdated != null) {
                     // If we have a new timestamp but didn't have one before, always update
                     val formResponses = objectMapper.writeValueAsString(RowStructure(registrationRow.data, registrationRow.lastSubmittedTime))
                     val updatedRegistration = existingRegistration.copy(formResponses = formResponses)

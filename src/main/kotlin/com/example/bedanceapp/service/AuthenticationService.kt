@@ -3,6 +3,8 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.model.*
 import com.example.bedanceapp.repository.UserProfileRepository
 import com.example.bedanceapp.repository.UserRepository
+import com.google.api.client.auth.oauth2.TokenResponse
+import com.nimbusds.openid.connect.sdk.claims.UserInfo
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
@@ -17,13 +19,11 @@ class AuthenticationService(
 ) {
 
     /**
-     * Unified token processing that handles:
-     * - authorization_code: Initial login or incremental authorization
-     * - refresh_token: Refresh JWT tokens
+     * Token processing for Google OAuth2 authorization_code flow.
      *
      * @param request TokenRequest with grant_type and appropriate parameters
      * @param currentUser Current authenticated user (required for incremental auth, optional for others)
-     * @return AuthenticationResponse with JWT tokens and user info
+     * @return AuthenticationResponse with JWT access token and user info
      */
     @Transactional
     fun processToken(request: TokenRequest, currentUser: User? = null): AuthenticationResponse {
@@ -34,19 +34,45 @@ class AuthenticationService(
 
                 handleAuthorizationCode(request.code, request.redirectUri, currentUser)
             }
-            "refresh_token" -> {
-                require(request.refreshToken != null) { "refreshToken is required for refresh_token grant type" }
-
-                handleRefreshToken(request.refreshToken)
-            }
-            else -> throw IllegalArgumentException("Invalid grant_type. Must be 'authorization_code' or 'refresh_token'")
+            else -> throw IllegalArgumentException("Invalid grant_type. Must be 'authorization_code'")
         }
     }
 
-    /**
-     * Handle authorization_code grant type
-     * Supports both initial login and incremental authorization
-     */
+    private fun loginNewUser(userInfo: UserInfoFromToken, tokenResponse: TokenResponse): User {
+        val user = User(
+            email = userInfo.email,
+            provider = "google",
+            providerId = userInfo.id,
+            googleAccessToken = tokenResponse.accessToken,
+            googleRefreshToken = tokenResponse.refreshToken,
+            googleTokenExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.expiresInSeconds),
+            googleScopes = tokenResponse.scope,
+            lastLoginAt = OffsetDateTime.now(),
+        )
+        val savedUser = userRepository.saveAndFlush(user)
+
+        // Create profile with info from ID token
+        val profile = UserProfile(
+            user = savedUser,
+            firstName = userInfo.givenName,
+            lastName = userInfo.familyName
+        )
+        profileRepository.saveAndFlush(profile)
+
+        return savedUser
+    }
+
+    private fun loginExistingUser(user: User, tokenResponse: TokenResponse): User {
+        val updatedUser = user.copy(
+            googleAccessToken = tokenResponse.accessToken,
+            googleRefreshToken = tokenResponse.refreshToken ?: user.googleRefreshToken,
+            googleTokenExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.expiresInSeconds),
+            googleScopes = tokenResponse.scope,
+            lastLoginAt = OffsetDateTime.now()
+        )
+        return userRepository.save(updatedUser)
+    }
+
     private fun handleAuthorizationCode(code: String, redirectUri: String, currentUser: User?): AuthenticationResponse {
         // Exchange authorization code for tokens (including ID token)
         val tokenResponse = googleOAuth2Service.exchangeCodeForTokens(code, redirectUri)
@@ -56,79 +82,19 @@ class AuthenticationService(
         val userInfo = googleOAuth2Service.getUserInfoFromIdToken(idToken)
 
         // Find or create user
-        var user = userRepository.findByProviderAndProviderId("google", userInfo.id)
+        val existingUser = userRepository.findByProviderAndProviderId("google", userInfo.id)
 
-        if (user == null) {
-            // Create new user (initial login)
-            user = User(
-                email = userInfo.email,
-                provider = "google",
-                providerId = userInfo.id,
-                googleAccessToken = tokenResponse.accessToken,
-                googleRefreshToken = tokenResponse.refreshToken,
-                googleTokenExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.expiresInSeconds),
-                googleScopes = tokenResponse.scope,
-                lastLoginAt = OffsetDateTime.now(),
-            )
-            user = userRepository.saveAndFlush(user)
-
-            // Create profile with info from ID token
-            val profile = UserProfile(
-                user = user,
-                firstName = userInfo.givenName,
-                lastName = userInfo.familyName
-            )
-            profileRepository.saveAndFlush(profile)
-
+        val user = if (existingUser != null) {
+            loginExistingUser(existingUser, tokenResponse)
         } else {
-
-            val updatedUser = user.copy(
-                googleAccessToken = tokenResponse.accessToken,
-                googleRefreshToken = tokenResponse.refreshToken ?: user.googleRefreshToken,
-                googleTokenExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.expiresInSeconds),
-                googleScopes = tokenResponse.scope,
-                lastLoginAt = OffsetDateTime.now()
-            )
-            user = userRepository.save(updatedUser)
+            loginNewUser(userInfo, tokenResponse)
         }
 
-        // Generate JWT tokens for our application
+        // Generate JWT access token for our application
         val accessToken = jwtService.generateAccessToken(user.id!!, user.email)
-        val refreshToken = jwtService.generateRefreshToken(user.id!!, user.email)
 
         return AuthenticationResponse(
             accessToken = accessToken,
-            refreshToken = refreshToken,
-            expiresIn = jwtService.getExpirationTime(),
-            user = UserDto(
-                id = user.id!!,
-                email = user.email,
-                provider = user.provider,
-                hasProfile = user.profile != null,
-                grantedScopes = parseScopes(user.googleScopes)
-            )
-        )
-    }
-
-    /**
-     * Handle refresh_token grant type
-     */
-    private fun handleRefreshToken(refreshToken: String): AuthenticationResponse {
-        if (!jwtService.validateToken(refreshToken)) {
-            throw IllegalArgumentException("Invalid refresh token")
-        }
-
-        val userId = jwtService.getUserIdFromToken(refreshToken)
-        val user = userRepository.findById(userId)
-            .orElseThrow { IllegalArgumentException("User not found") }
-
-        // Generate new JWT tokens
-        val newAccessToken = jwtService.generateAccessToken(user.id!!, user.email)
-        val newRefreshToken = jwtService.generateRefreshToken(user.id!!, user.email)
-
-        return AuthenticationResponse(
-            accessToken = newAccessToken,
-            refreshToken = newRefreshToken,
             expiresIn = jwtService.getExpirationTime(),
             user = UserDto(
                 id = user.id!!,

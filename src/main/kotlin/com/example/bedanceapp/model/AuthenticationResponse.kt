@@ -4,7 +4,6 @@ import java.util.UUID
 
 data class AuthenticationResponse(
     val accessToken: String,
-    val refreshToken: String,
     val expiresIn: Long,
     val user: UserDto
 )

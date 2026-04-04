@@ -19,27 +19,6 @@ class UserService(
     private val mediaService: MediaService
 ) {
 
-    fun getAllUsers(): List<User> {
-        return userRepository.findAll()
-    }
-
-    fun getUserById(id: UUID): User? {
-        return userRepository.findById(id).orElse(null)
-    }
-
-    fun createUser(user: User): User {
-        return userRepository.save(user)
-    }
-
-    fun getProfileByUserId(userId: UUID): UserProfile? {
-        return userProfileRepository.findById(userId).orElse(null)
-    }
-
-    @Transactional
-    fun createOrUpdateProfile(profile: UserProfile): UserProfile {
-        return userProfileRepository.save(profile)
-    }
-
     @Transactional(readOnly = true)
     fun getProfileData(userId: UUID): ProfileData? {
         val profile = userProfileRepository.findById(userId).orElse(null) ?: return null

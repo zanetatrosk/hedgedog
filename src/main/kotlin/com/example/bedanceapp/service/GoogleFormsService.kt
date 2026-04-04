@@ -55,9 +55,9 @@ class GoogleFormsService(
      * Get a specific form by ID
      */
     fun getForm(user: User, formId: String): Form {
-//        if (!hasFormsAccess(user)) {
-//            throw IllegalStateException("User has not granted Google Forms access")
-//        }
+        if (!hasFormsAccess(user)) {
+            throw IllegalStateException("User has not granted Google Forms access")
+        }
 
         val formsService = getFormsService(user)
         return formsService.forms().get(formId).execute()

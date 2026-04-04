@@ -21,15 +21,14 @@ class AuthenticationController(
 ) {
 
     /**
-     * Unified token endpoint for all authentication flows
+     * Token endpoint for authorization code authentication flow
      *
      * Supports:
      * - authorization_code: Initial login or incremental authorization
-     * - refresh_token: Refresh JWT access tokens
      *
      * @param request TokenRequest with grant_type and appropriate parameters
      * @param user Current authenticated user (optional, required for incremental auth)
-     * @return AuthenticationResponse with JWT tokens and user info
+     * @return AuthenticationResponse with JWT access token and user info
      */
     @PostMapping("/token")
     fun token(

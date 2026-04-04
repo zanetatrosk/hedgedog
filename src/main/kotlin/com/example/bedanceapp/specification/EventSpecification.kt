@@ -3,6 +3,7 @@ package com.example.bedanceapp.specification
 import com.example.bedanceapp.model.*
 import jakarta.persistence.criteria.*
 import org.springframework.data.jpa.domain.Specification
+import java.time.LocalDate
 import java.util.UUID
 
 object EventSpecification {
@@ -90,22 +91,15 @@ object EventSpecification {
         }
     }
 
-    fun buildSpecification(
-        status: EventStatus,
-        eventName: String?,
-        city: String?,
-        country: String?,
-        danceStyleIds: List<UUID>?,
-        eventTypeIds: List<UUID>?
-    ): Specification<Event> {
-        var spec = hasStatus(status)
+    fun isUpcoming(today: LocalDate = LocalDate.now()): Specification<Event> {
+        return Specification { root, _, criteriaBuilder ->
+            val endDatePath: Path<LocalDate> = root.get("endDate")
+            val eventDatePath: Path<LocalDate> = root.get("eventDate")
 
-        hasEventName(eventName)?.let { spec = spec.and(it) }
-        hasLocationFilters(city, country)?.let { spec = spec.and(it) }
-        hasDanceStyles(danceStyleIds)?.let { spec = spec.and(it) }
-        hasEventTypes(eventTypeIds)?.let { spec = spec.and(it) }
-
-        return spec
+            // Treat multi-day events as upcoming until their endDate; otherwise use eventDate.
+            val effectiveDate: Expression<LocalDate> = criteriaBuilder.coalesce(endDatePath, eventDatePath)
+            criteriaBuilder.greaterThanOrEqualTo(effectiveDate, today)
+        }
     }
 
     fun buildSpecificationForPublicEvents(
@@ -123,6 +117,7 @@ object EventSpecification {
         }
 
         var spec = hasStatuses(statuses)
+            .and(isUpcoming())
 
         hasEventName(eventName)?.let { spec = spec.and(it) }
         hasLocationFilters(city, country)?.let { spec = spec.and(it) }
@@ -132,4 +127,3 @@ object EventSpecification {
         return spec
     }
 }
-
