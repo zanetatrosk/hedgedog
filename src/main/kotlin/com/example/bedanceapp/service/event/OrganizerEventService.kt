@@ -13,7 +13,6 @@ import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.service.EventAccessValidator
 import com.example.bedanceapp.service.registration.OrganizerRegistrationService
 import com.example.bedanceapp.service.registration.RegistrationRecalculateService
-import com.example.bedanceapp.service.recurring.RecurringEventService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate

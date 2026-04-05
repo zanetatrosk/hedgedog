@@ -4,7 +4,7 @@ import com.example.bedanceapp.model.RecurringDateInfo
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
-import com.example.bedanceapp.service.recurring.RecurringEventService
+import com.example.bedanceapp.service.event.RecurringEventService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID

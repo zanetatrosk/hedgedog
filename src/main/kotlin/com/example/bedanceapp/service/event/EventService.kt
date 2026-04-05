@@ -3,7 +3,6 @@ package com.example.bedanceapp.service.event
 import com.example.bedanceapp.model.*
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.service.mapping.EventMapper
-import com.example.bedanceapp.service.recurring.RecurringEventService
 import com.example.bedanceapp.specification.EventSpecification
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
