@@ -25,9 +25,9 @@ class RecurringEventService(
 
     @Transactional
     fun createRecurringEvents(
-        request: CreateEventRequest,
+        request: CreateUpdateEventDto,
         organizerId: UUID,
-        createEventFn: (CreateEventRequest, UUID, LocalDate?, UUID?) -> Event
+        createEventFn: (CreateUpdateEventDto, UUID, LocalDate?, UUID?) -> Event
     ): List<Event> {
         // 1. Guard Clause: If not recurring, keep it simple
         if (request.basicInfo.isRecurring != true) {

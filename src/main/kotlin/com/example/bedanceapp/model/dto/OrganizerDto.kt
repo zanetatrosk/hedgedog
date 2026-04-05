@@ -1,4 +1,4 @@
-package com.example.bedanceapp.model
+package com.example.bedanceapp.model.dto
 
 data class OrganizerDto(
     val userId: String,

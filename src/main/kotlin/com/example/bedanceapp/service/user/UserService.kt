@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.user
 
-import com.example.bedanceapp.model.ProfileData
+import com.example.bedanceapp.model.UserProfileDto
 import com.example.bedanceapp.repository.UserProfileRepository
 import com.example.bedanceapp.service.mapping.UserMapper
 import org.springframework.stereotype.Service
@@ -15,14 +15,14 @@ class UserService(
 ) {
 
     @Transactional(readOnly = true)
-    fun getProfileData(userId: UUID): ProfileData? {
+    fun getProfileData(userId: UUID): UserProfileDto? {
         return userProfileRepository.findById(userId)
             .map { userMapper.toProfileData(it) }
             .orElse(null)
     }
 
     @Transactional
-    fun updateProfileData(userId: UUID, request: ProfileData): ProfileData {
+    fun updateProfileData(userId: UUID, request: UserProfileDto): UserProfileDto {
         val existing = userProfileRepository.findById(userId).orElse(null)
         val updatedProfile = userAssembler.buildProfile(userId, request, existing)
         val saved = userProfileRepository.save(updatedProfile)

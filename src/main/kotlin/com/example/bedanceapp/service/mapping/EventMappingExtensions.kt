@@ -3,7 +3,7 @@ package com.example.bedanceapp.service.mapping
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.Location
 import com.example.bedanceapp.model.LocationRequest
-import com.example.bedanceapp.model.OrganizerDto
+import com.example.bedanceapp.model.dto.OrganizerDto
 
 /**
  * Pure transformation extensions for Event-related entities.

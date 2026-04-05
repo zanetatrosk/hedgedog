@@ -1,4 +1,6 @@
-package com.example.bedanceapp.model
+package com.example.bedanceapp.model.dto
+
+import com.example.bedanceapp.model.EventMedia
 
 data class RegistrationProfile(
     val name: String,

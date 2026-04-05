@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.event
 
-import com.example.bedanceapp.model.CreateEventRequest
+import com.example.bedanceapp.model.CreateUpdateEventDto
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.repository.CurrencyRepository
@@ -25,7 +25,7 @@ class EventAssembler(
     private val mediaRepository: MediaRepository
 ) {
     fun buildEventFromRequest(
-        request: CreateEventRequest,
+        request: CreateUpdateEventDto,
         organizerId: UUID,
         date: LocalDate? = null,
         parentId: UUID? = null,

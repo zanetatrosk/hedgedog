@@ -1,7 +1,7 @@
 package com.example.bedanceapp.service.user
 
 import com.example.bedanceapp.model.Media
-import com.example.bedanceapp.model.ProfileData
+import com.example.bedanceapp.model.UserProfileDto
 import com.example.bedanceapp.model.UserProfile
 import com.example.bedanceapp.repository.DanceStyleRepository
 import com.example.bedanceapp.repository.DancerRoleRepository
@@ -19,7 +19,7 @@ class UserAssembler(
     private val danceStyleRepository: DanceStyleRepository,
     private val mediaRepository: MediaRepository
 ) {
-    fun buildProfile(userId: UUID, request: ProfileData, existing: UserProfile?): UserProfile {
+    fun buildProfile(userId: UUID, request: UserProfileDto, existing: UserProfile?): UserProfile {
         val user = userRepository.findById(userId).orElseThrow { IllegalArgumentException("User not found with id: $userId") }
 
         val role = request.role?.id?.let { roleId ->

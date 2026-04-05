@@ -1,6 +1,6 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.AppSummary
+import com.example.bedanceapp.model.AppSummaryDto
 import com.example.bedanceapp.service.AppSummaryService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CrossOrigin
@@ -30,7 +30,7 @@ class AppController(
      * @return AppSummary with statistics
      */
     @GetMapping("/summary")
-    fun getAppSummary(): ResponseEntity<AppSummary> {
+    fun getAppSummary(): ResponseEntity<AppSummaryDto> {
         val summary = appSummaryService.getAppSummary()
         return ResponseEntity.ok(summary)
     }

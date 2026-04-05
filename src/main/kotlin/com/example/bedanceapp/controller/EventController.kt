@@ -1,11 +1,11 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.CreateEventRequest
+import com.example.bedanceapp.model.CreateUpdateEventDto
 import com.example.bedanceapp.model.CreateEventResponse
-import com.example.bedanceapp.model.EventDetailData
-import com.example.bedanceapp.model.EventDto
+import com.example.bedanceapp.model.EventDetailDto
+import com.example.bedanceapp.model.EventSummaryDto
 import com.example.bedanceapp.model.PagedResponse
-import com.example.bedanceapp.model.PublishEventRequest
+import com.example.bedanceapp.model.PublishEventDto
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.service.event.EventService
 import com.example.bedanceapp.service.event.OrganizerEventService
@@ -38,7 +38,7 @@ class EventController(
         @RequestParam(required = false) danceStyles: List<UUID>?,
         @RequestParam(required = false) eventTypes: List<UUID>?,
         @RequestParam(defaultValue = "true") includeCancelled: Boolean
-    ): ResponseEntity<PagedResponse<EventDto>> {
+    ): ResponseEntity<PagedResponse<EventSummaryDto>> {
         val sort = Sort.by(Sort.Order.asc("eventDate"), Sort.Order.asc("eventTime"))
         val pageable = PageRequest.of(page, size, sort)
         val eventsPage = eventService.getAllPublishedEventsPaginated(
@@ -66,7 +66,7 @@ class EventController(
 
     @PostMapping
     fun createEvent(
-        @Valid @RequestBody request: CreateEventRequest,
+        @Valid @RequestBody request: CreateUpdateEventDto,
         @AuthenticationPrincipal user: User?
     ): ResponseEntity<CreateEventResponse> {
         val organizerId = requireAuthenticatedUserId(user)
@@ -83,7 +83,7 @@ class EventController(
     @PutMapping("/{eventId}")
     fun updateEvent(
         @PathVariable eventId: UUID,
-        @Valid @RequestBody request: CreateEventRequest,
+        @Valid @RequestBody request: CreateUpdateEventDto,
         @AuthenticationPrincipal user: User?
     ): ResponseEntity<CreateEventResponse> {
         val organizerId = requireAuthenticatedUserId(user)
@@ -100,7 +100,7 @@ class EventController(
     fun getEventById(
         @PathVariable id: UUID,
         @AuthenticationPrincipal user: User?
-    ): ResponseEntity<EventDetailData> {
+    ): ResponseEntity<EventDetailDto> {
         val eventDetail = eventService.getEventDetailById(id, user?.id)
         return ResponseEntity.ok(eventDetail)
     }
@@ -112,7 +112,7 @@ class EventController(
     @PatchMapping("/{eventId}/publish")
     fun publishEvent(
         @PathVariable eventId: UUID,
-        @RequestBody request: PublishEventRequest,
+        @RequestBody request: PublishEventDto,
         @AuthenticationPrincipal user: User?
     ): ResponseEntity<EventStatusResponse> {
         return try {

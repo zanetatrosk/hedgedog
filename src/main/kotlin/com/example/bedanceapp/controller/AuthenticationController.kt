@@ -1,6 +1,7 @@
 package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.*
+import com.example.bedanceapp.model.dto.TokenRequest
 import com.example.bedanceapp.service.AuthenticationService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -34,7 +35,7 @@ class AuthenticationController(
     fun token(
         @RequestBody request: TokenRequest,
         @AuthenticationPrincipal user: User?
-    ): ResponseEntity<AuthenticationResponse> {
+    ): ResponseEntity<AuthResponse> {
         val response = authenticationService.processToken(request, user)
         return ResponseEntity.ok(response)
     }

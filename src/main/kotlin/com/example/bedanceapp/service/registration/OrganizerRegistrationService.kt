@@ -4,11 +4,11 @@ import com.example.bedanceapp.controller.RegistrationAction
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
+import com.example.bedanceapp.model.OrganizerAction
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.service.EventAccessValidator
 import com.example.bedanceapp.service.RegistrationAccessValidator
-import com.example.bedanceapp.service.enum.OrganizerAction
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID

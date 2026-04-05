@@ -1,14 +1,13 @@
 package com.example.bedanceapp.service
 
 import com.example.bedanceapp.model.*
+import com.example.bedanceapp.model.dto.TokenRequest
 import com.example.bedanceapp.repository.UserProfileRepository
 import com.example.bedanceapp.repository.UserRepository
 import com.google.api.client.auth.oauth2.TokenResponse
-import com.nimbusds.openid.connect.sdk.claims.UserInfo
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
-import java.util.*
 
 @Service
 class AuthenticationService(
@@ -26,7 +25,7 @@ class AuthenticationService(
      * @return AuthenticationResponse with JWT access token and user info
      */
     @Transactional
-    fun processToken(request: TokenRequest, currentUser: User? = null): AuthenticationResponse {
+    fun processToken(request: TokenRequest, currentUser: User? = null): AuthResponse {
         return when (request.grantType) {
             "authorization_code" -> {
                 require(request.code != null) { "code is required for authorization_code grant type" }
@@ -73,7 +72,7 @@ class AuthenticationService(
         return userRepository.save(updatedUser)
     }
 
-    private fun handleAuthorizationCode(code: String, redirectUri: String, currentUser: User?): AuthenticationResponse {
+    private fun handleAuthorizationCode(code: String, redirectUri: String, currentUser: User?): AuthResponse {
         // Exchange authorization code for tokens (including ID token)
         val tokenResponse = googleOAuth2Service.exchangeCodeForTokens(code, redirectUri)
 
@@ -93,7 +92,7 @@ class AuthenticationService(
         // Generate JWT access token for our application
         val accessToken = jwtService.generateAccessToken(user.id!!, user.email)
 
-        return AuthenticationResponse(
+        return AuthResponse(
             accessToken = accessToken,
             expiresIn = jwtService.getExpirationTime(),
             user = UserDto(

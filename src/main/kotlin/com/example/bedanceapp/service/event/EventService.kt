@@ -27,7 +27,7 @@ class EventService(
         danceStyleIds: List<UUID>? = null,
         eventTypeIds: List<UUID>? = null,
         includeCancelled: Boolean = true
-    ): Page<EventDto> {
+    ): Page<EventSummaryDto> {
         val specification = EventSpecification.buildSpecificationForPublicEvents(
             includeCancelled = includeCancelled,
             eventName = eventName,
@@ -41,7 +41,7 @@ class EventService(
     }
 
     @Transactional(readOnly = true)
-    fun getEventDetailById(eventId: UUID, userId: UUID? = null): EventDetailData {
+    fun getEventDetailById(eventId: UUID, userId: UUID? = null): EventDetailDto {
         val event = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 

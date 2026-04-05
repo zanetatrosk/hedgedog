@@ -2,7 +2,7 @@ package com.example.bedanceapp.service.registration
 
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
-import com.example.bedanceapp.model.EventRegistrationCount
+import com.example.bedanceapp.model.EventRegistrationStats
 import com.example.bedanceapp.model.EventRegistrationDto
 import com.example.bedanceapp.model.RegistrationUserDto
 import com.example.bedanceapp.repository.EventRegistrationRepository
@@ -39,11 +39,11 @@ class EventRegistrationQueryService(
     }
 
     @Transactional(readOnly = true)
-    fun getRegistrationRolesCountsByEventId(eventId: UUID): EventRegistrationCount {
+    fun getRegistrationRolesCountsByEventId(eventId: UUID): EventRegistrationStats {
         val regs = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED)
         val counts = regs.groupingBy { it.role?.name ?: "Unknown" }.eachCount()
 
-        return EventRegistrationCount(
+        return EventRegistrationStats(
             total = regs.size,
             leaders = counts["Leader"] ?: 0,
             followers = counts["Follower"] ?: 0,

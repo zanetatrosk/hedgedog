@@ -32,7 +32,7 @@ class UserController(
     @GetMapping("/{userId}")
     fun getUserProfile(
         @PathVariable userId: UUID
-    ): ResponseEntity<ProfileData> {
+    ): ResponseEntity<UserProfileDto> {
         val profileData = userService.getProfileData(userId)
             ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         return ResponseEntity.ok(profileData)
@@ -45,8 +45,8 @@ class UserController(
     @PutMapping("/{userId}")
     fun updateUserProfile(
         @PathVariable userId: UUID,
-        @RequestBody request: ProfileData
-    ): ResponseEntity<ProfileData> {
+        @RequestBody request: UserProfileDto
+    ): ResponseEntity<UserProfileDto> {
         return try {
             val profileData = userService.updateProfileData(userId, request)
             ResponseEntity.ok(profileData)

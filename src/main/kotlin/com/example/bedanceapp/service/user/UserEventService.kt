@@ -72,13 +72,13 @@ class UserEventService(
             val parent = eventParentRepository.findById(parentId).orElse(null) ?: return@mapNotNull null
             val sortedChildren = children.sortedBy { it.eventDate }
 
-            SeriesEventDTO(
+            EventSeriesDto(
                 id = parentId.toString(),
                 eventName = parent.name,
                 organizer = sortedChildren.first().toOrganizerDto(),
                 overallStartDate = sortedChildren.first().eventDate.toString(),
                 overallEndDate = sortedChildren.last().eventDate.toString(),
-                occurrences = sortedChildren.map { eventMapper.toSingleEventDTO(it, statusMap[it.id]) }
+                occurrences = sortedChildren.map { eventMapper.toSingleEventDto(it, statusMap[it.id]) }
             )
         }
 
@@ -86,7 +86,7 @@ class UserEventService(
             .flatMap { it.value }
 
         val standaloneResults = (standaloneEvents + orphanedChildren).map {
-            eventMapper.toSingleEventDTO(it, statusMap[it.id])
+            eventMapper.toSingleEventDto(it, statusMap[it.id])
         }
 
         return seriesResults + standaloneResults

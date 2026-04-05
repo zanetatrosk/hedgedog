@@ -1,11 +1,11 @@
 package com.example.bedanceapp.service.event
 
 import com.example.bedanceapp.controller.RegistrationStatus
-import com.example.bedanceapp.model.CreateEventRequest
+import com.example.bedanceapp.model.CreateUpdateEventDto
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistrationSettings
 import com.example.bedanceapp.model.EventStatus
-import com.example.bedanceapp.model.PublishEventRequest
+import com.example.bedanceapp.model.PublishEventDto
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
@@ -32,7 +32,7 @@ class OrganizerEventService(
 ) {
 
     @Transactional
-    fun createEventByOccurrence(request: CreateEventRequest, organizerId: UUID): List<Event> {
+    fun createEventByOccurrence(request: CreateUpdateEventDto, organizerId: UUID): List<Event> {
         return recurringEventService.createRecurringEvents(
             request = request,
             organizerId = organizerId,
@@ -43,7 +43,7 @@ class OrganizerEventService(
     }
 
     @Transactional
-    fun updateEvent(eventId: UUID, request: CreateEventRequest, organizerId: UUID): Event {
+    fun updateEvent(eventId: UUID, request: CreateUpdateEventDto, organizerId: UUID): Event {
         val existingEvent = eventAccessValidator.requireOwnedEvent(eventId, organizerId)
         handleCapacityRecalculation(existingEvent, request)
 
@@ -60,7 +60,7 @@ class OrganizerEventService(
     }
 
     @Transactional
-    fun publishEvent(eventId: UUID, organizerId: UUID, publishRequest: PublishEventRequest? = null): Event {
+    fun publishEvent(eventId: UUID, organizerId: UUID, publishRequest: PublishEventDto? = null): Event {
         val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId, EventStatus.DRAFT)
 
         val registrationMode = publishRequest?.registrationMode ?: RegistrationMode.OPEN
@@ -113,13 +113,13 @@ class OrganizerEventService(
     }
 
     @Transactional
-    fun createEvent(request: CreateEventRequest, organizerId: UUID, date: LocalDate? = null, parentId: UUID? = null): Event {
+    fun createEvent(request: CreateUpdateEventDto, organizerId: UUID, date: LocalDate? = null, parentId: UUID? = null): Event {
         val eventData = eventAssembler.buildEventFromRequest(request, organizerId, date, parentId)
         return eventRepository.save(eventData)
     }
 
 
-    private fun handleCapacityRecalculation(existingEvent: Event, request: CreateEventRequest) {
+    private fun handleCapacityRecalculation(existingEvent: Event, request: CreateUpdateEventDto) {
         val newMax = request.additionalDetails?.maxAttendees ?: return
         val eventId = existingEvent.id ?: return
         val confirmedCount = eventRegistrationRepository.findByEventId(eventId)

@@ -31,9 +31,3 @@ data class EventRegistrationSettings(
     val requireApproval: Boolean = false
 )
 
-enum class RegistrationMode {
-    COUPLE,
-    OPEN,
-    GOOGLE_FORM
-}
-

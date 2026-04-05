@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.mapping
 
-import com.example.bedanceapp.model.ProfileData
+import com.example.bedanceapp.model.UserProfileDto
 import com.example.bedanceapp.model.UserProfile
 import com.example.bedanceapp.model.toCodebook
 import com.example.bedanceapp.model.toCodebookList
@@ -15,7 +15,7 @@ class UserMapper(
     private val dancerRoleRepository: DancerRoleRepository,
     private val mediaRepository: MediaRepository
 ) {
-    fun toProfileData(profile: UserProfile): ProfileData {
+    fun toProfileData(profile: UserProfile): UserProfileDto {
         val role = profile.roleId?.let { roleId ->
             dancerRoleRepository.findById(roleId).orElse(null)?.toCodebook()
         }
@@ -23,7 +23,7 @@ class UserMapper(
             mediaRepository.findById(avatarId).orElse(null)?.let { mediaService.mapToDTO(it) }
         }
 
-        return ProfileData(
+        return UserProfileDto(
             firstName = profile.firstName,
             lastName = profile.lastName,
             bio = profile.bio,

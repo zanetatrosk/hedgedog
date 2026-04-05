@@ -5,13 +5,13 @@ import com.example.bedanceapp.model.AttendeeStats
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventDetailAdditionalDetails
 import com.example.bedanceapp.model.EventDetailBasicInfo
-import com.example.bedanceapp.model.EventDetailData
-import com.example.bedanceapp.model.EventDto
+import com.example.bedanceapp.model.EventDetailDto
+import com.example.bedanceapp.model.EventSummaryDto
 import com.example.bedanceapp.model.RecurringDateInfo
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.model.RegistrationStats
 import com.example.bedanceapp.model.RsvpStatus
-import com.example.bedanceapp.model.SingleEventDTO
+import com.example.bedanceapp.model.SingleEventDto
 import com.example.bedanceapp.model.UserRegistrationStatus
 import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
@@ -28,15 +28,15 @@ class EventMapper(
 ) {
 
     /**
-     * Maps an Event entity to a lightweight EventDto (used for lists/search).
+     * Maps an Event entity to a lightweight EventSummaryDto (used for lists/search).
      */
-    fun toDto(event: Event, userId: UUID?): EventDto {
+    fun toDto(event: Event, userId: UUID?): EventSummaryDto {
         val eventId = event.id ?: throw IllegalStateException("Event ID cannot be null for mapping")
         val regCounts = eventRegistrationQueryService.getRegistrationRolesCountsByEventId(eventId)
         val interestedCount = eventRegistrationQueryService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
         val settings = eventRegistrationSettingsRepository.findByEventId(eventId)
 
-        return EventDto(
+        return EventSummaryDto(
             id = eventId.toString(),
             organizer = event.toOrganizerDto(),
             eventName = event.eventName,
@@ -60,15 +60,15 @@ class EventMapper(
     }
 
     /**
-     * Maps an Event entity to the full EventDetailData object.
+     * Maps an Event entity to the full EventDetailDto object.
      */
-    fun toDetailData(event: Event, userId: UUID?, recurringDates: List<RecurringDateInfo>): EventDetailData {
+    fun toDetailData(event: Event, userId: UUID?, recurringDates: List<RecurringDateInfo>): EventDetailDto {
         val eventId = event.id ?: throw IllegalStateException("Event ID cannot be null")
         val regCounts = eventRegistrationQueryService.getRegistrationRolesCountsByEventId(eventId)
         val interestedCount = eventRegistrationQueryService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
         val settings = eventRegistrationSettingsRepository.findByEventId(eventId)
 
-        return EventDetailData(
+        return EventDetailDto(
             id = eventId.toString(),
             basicInfo = EventDetailBasicInfo(
                 eventName = event.eventName,
@@ -107,12 +107,12 @@ class EventMapper(
         )
     }
 
-    fun toSingleEventDTO(event: Event, userStatus: RsvpStatus?): SingleEventDTO {
+    fun toSingleEventDto(event: Event, userStatus: RsvpStatus?): SingleEventDto {
         val eventId = event.id ?: throw IllegalStateException("Event ID cannot be null")
         val stats = eventRegistrationQueryService.getRegistrationRolesCountsByEventId(eventId)
         val interestedCount = eventRegistrationQueryService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
 
-        return SingleEventDTO(
+        return SingleEventDto(
             id = eventId.toString(),
             eventName = event.eventName,
             organizer = event.toOrganizerDto(),
