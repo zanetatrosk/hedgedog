@@ -93,6 +93,7 @@ data class StructuredForm (
 object RegistrationHeaders {
     val FULLNAME = TextHeader("fullname", "Full name")
     val EMAIL = TextHeader("email", "Email")
+    val EXPERIENCE = TextHeader("experience", "Experience level")
 
 
     /**
@@ -100,8 +101,8 @@ object RegistrationHeaders {
      */
     fun experience(skillLevels: List<SkillLevel>): ChoiceHeader {
         return ChoiceHeader(
-            "experience",
-            "Experience level",
+            EXPERIENCE.id,
+            EXPERIENCE.question,
             skillLevels.sortedBy { it.levelOrder }.map { it.name }
         )
     }
@@ -131,7 +132,7 @@ object CoupleHeaders {
  * Headers specific to Google Forms mode
  */
 object GoogleFormHeaders {
-    val TIMESTAMP = TextHeader("timestamp", "Timestamp")
+    val TIMESTAMP = TextHeader("timestamp", "Last updated")
     val EMAIL = TextHeader("email", "Email Address")
 }
 

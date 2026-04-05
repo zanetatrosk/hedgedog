@@ -9,14 +9,14 @@ import java.util.UUID
 data class SkillLevel(
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    val id: UUID? = null,
+    override val id: UUID? = null,
 
     @Column(nullable = false, unique = true)
-    val name: String,
+    override val name: String,
 
     @Column(name = "level_order", nullable = false, unique = true)
     val levelOrder: Int,
 
     @Column(name = "created_at", updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
-)
+) : Identifiable

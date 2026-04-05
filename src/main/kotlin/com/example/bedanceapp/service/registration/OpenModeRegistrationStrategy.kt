@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * Base strategy for OPEN registration mode
  * Simple registration without roles or partner matching
- * Can be extended by CoupleModeRegistrationStrategy to add role functionality
  */
 @Component
 open class OpenModeRegistrationStrategy(
@@ -80,7 +79,7 @@ open class OpenModeRegistrationStrategy(
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
             RegistrationDataDto(RegistrationHeaders.EMAIL.id, registration.user?.email ?: ""),
-            RegistrationDataDto("experience", registration.user?.profile?.generalSkillLevel?.name ?: ""),
+            RegistrationDataDto(RegistrationHeaders.EXPERIENCE.id, registration.user?.profile?.generalSkillLevel?.name ?: ""),
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )
     }

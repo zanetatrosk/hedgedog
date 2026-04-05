@@ -9,14 +9,14 @@ import java.util.UUID
 data class EventType(
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    val id: UUID? = null,
+    override val id: UUID? = null,
 
     @Column(nullable = false, unique = true)
-    val name: String,
+    override val name: String,
 
     @Column(name = "created_at", updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @ManyToMany(mappedBy = "typesOfEvents")
     val events: List<Event> = emptyList()
-)
+) : Identifiable

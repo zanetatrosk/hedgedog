@@ -3,11 +3,10 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
-import com.example.bedanceapp.service.registration.GoogleFormRegistrationStrategy
+import com.example.bedanceapp.service.registration.GoogleFormSyncService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * Scheduled job to automatically sync Google Form registration data
@@ -16,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class GoogleFormSyncScheduler(
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
-    private val googleFormRegistrationStrategy: GoogleFormRegistrationStrategy
+    private val googleFormSyncService: GoogleFormSyncService
 ) {
     private val logger = LoggerFactory.getLogger(GoogleFormSyncScheduler::class.java)
 
@@ -26,7 +25,6 @@ class GoogleFormSyncScheduler(
      * No user authentication required - uses stored organizer tokens
      */
     @Scheduled(fixedRate = 3600000) // 1 hour
-    @Transactional
     fun syncAllGoogleForms() {
         logger.info("Starting scheduled Google Form sync")
 
@@ -43,7 +41,7 @@ class GoogleFormSyncScheduler(
             googleFormEvents.forEach { settings ->
                 try {
                     logger.debug("Syncing form data for event: {}", settings.eventId)
-                    settings.event?.let { googleFormRegistrationStrategy.syncRegistrationData(it) }
+                    settings.event?.let { googleFormSyncService.syncRegistrationData(it) }
                     successCount++
                     logger.debug("Successfully synced event: {}", settings.eventId)
                 } catch (e: Exception) {

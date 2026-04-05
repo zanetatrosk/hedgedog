@@ -7,11 +7,11 @@ import jakarta.persistence.*
 data class DancerRole(
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Id
-    val id: UUID? = null,
+    override val id: UUID? = null,
 
     @Column(nullable = false, unique = true)
-    val name: String
-)
+    override val name: String
+) : Identifiable
 
 
 

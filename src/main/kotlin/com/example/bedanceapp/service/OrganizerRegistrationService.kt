@@ -6,7 +6,7 @@ import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRepository
-import com.example.bedanceapp.service.registration.GoogleFormRegistrationStrategy
+import com.example.bedanceapp.service.registration.GoogleFormSyncService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -16,7 +16,7 @@ class OrganizerRegistrationService(
     private val eventRegistrationRepository: EventRegistrationRepository,
     private val eventRepository: EventRepository,
     private val registrationRecalculateService: RegistrationRecalculateService,
-    private val googleFormRegistrationStrategy: GoogleFormRegistrationStrategy,
+    private val googleFormSyncService: GoogleFormSyncService,
     private val eventAccessValidator: EventAccessValidator,
     private val registrationAccessValidator: RegistrationAccessValidator
 ) {
@@ -71,9 +71,8 @@ class OrganizerRegistrationService(
     /**
      * Sync event registration form structure with Google Forms.
      */
-    @Transactional
     fun syncGoogleFormData(eventId: UUID, organizerId: UUID) {
-        val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId, EventStatus.PUBLISHED)
-        googleFormRegistrationStrategy.syncRegistrationData(event)
+        val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId)
+        googleFormSyncService.syncRegistrationData(event)
     }
 }

@@ -46,12 +46,6 @@ class CoupleModeRegistrationStrategy(
 
         // Insert role data before CREATED_AT (last item)
         return baseDataFields.dropLast(1) + roleData + baseDataFields.last()
-        // TODO: Add partner data when implementing partner matching
     }
-
-    // TODO: Future methods for couple-specific features
-    // fun suggestPartnerMatches(eventId: UUID): List<PartnerMatch>
-    // fun coupleRegistrations(registration1Id: UUID, registration2Id: UUID)
-    // fun uncoupleRegistrations(coupleId: UUID)
 }
 
