@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service.recurring
+package com.example.bedanceapp.service.event
 
 import com.example.bedanceapp.model.*
 import com.example.bedanceapp.repository.EventParentRepository

@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service.recurring
+package com.example.bedanceapp.service.event
 
 import com.example.bedanceapp.model.RecurrenceType
 import org.springframework.stereotype.Component
