@@ -13,8 +13,7 @@ import java.util.UUID
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
 @RequestMapping("/api/media")
 class MediaController(
-    private val mediaService: MediaService,
-    private val urlConfig: UrlConfig
+    private val mediaService: MediaService
 ) {
 
     /**
@@ -42,9 +41,8 @@ class MediaController(
         response: HttpServletResponse
     ) {
         // 🔐 auth / authorization inside service
-        val (media, stream) = mediaService.getMedia(id)
+        val (_, stream) = mediaService.getMedia(id)
 
-//        response.contentType = media.mimeType
         response.setHeader("Cache-Control", "private, max-age=3600")
         response.setHeader("Accept-Ranges", "bytes")
 

@@ -44,7 +44,7 @@ open class OpenModeRegistrationStrategy(
      * Get all registrations for an event
      * Only includes users who are actually registered (excludes INTERESTED status)
      */
-    protected open fun getRegistrations(event: Event): List<RegistrationRow> {
+    protected fun getRegistrations(event: Event): List<RegistrationRow> {
         val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
         // Fetch only registered users, excluding those with INTERESTED status
         val registrations = eventRegistrationRepository.findByEventIdAndStatusNot(eventId, RegistrationStatus.INTERESTED)

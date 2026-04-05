@@ -20,39 +20,5 @@ class GoogleFormsController(
         val hasAccess = googleFormsService.hasFormsAccess(user)
         return ResponseEntity.ok(mapOf("hasAccess" to hasAccess))
     }
-
-    /**
-     * Get a Google Form by ID
-     * Requires user to have granted forms permissions
-     */
-    @GetMapping("/{formId}")
-    fun getForm(
-        @AuthenticationPrincipal user: User,
-        @PathVariable formId: String
-    ): ResponseEntity<Any> {
-        return try {
-            val form = googleFormsService.getForm(user, formId)
-            ResponseEntity.ok(form)
-        } catch (e: IllegalStateException) {
-            ResponseEntity.status(403).body(mapOf("error" to e.message))
-        }
-    }
-
-    /**
-     * Get form responses
-     * Requires user to have granted forms permissions
-     */
-    @GetMapping("/{formId}/responses")
-    fun getFormResponses(
-        @AuthenticationPrincipal user: User,
-        @PathVariable formId: String
-    ): ResponseEntity<Any> {
-        return try {
-            val responses = googleFormsService.getFormResponses(user, formId)
-            ResponseEntity.ok(responses)
-        } catch (e: IllegalStateException) {
-            ResponseEntity.status(403).body(mapOf("error" to e.message))
-        }
-    }
 }
 

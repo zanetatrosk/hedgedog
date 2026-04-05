@@ -1,34 +1,72 @@
 package com.example.bedanceapp.model
-
+import jakarta.validation.Valid
+import jakarta.validation.constraints.*
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
+import org.hibernate.validator.constraints.URL
 
 data class CreateEventRequest(
+    @field:NotNull(message = "Basic info is required")
+    @field:Valid
     val basicInfo: BasicInfoRequest,
+
+    @field:Valid
     val additionalDetails: AdditionalDetailsRequest?,
+
+    @field:Size(max = 5000, message = "Description is too long (max 5000 chars)")
     val description: String?,
+
+    @field:Valid
     val coverImage: EventMedia?,
+
+    @field:Valid
     val media: List<EventMedia>?
 )
 
 data class BasicInfoRequest(
+    @field:NotBlank(message = "Event name is required")
     val eventName: String,
-    val location: LocationRequest?,  // New structured location
-    val date: String,      // ISO date format: "2024-01-15"
-    val time: String,      // Format: "18:00"
-    val endDate: String?,
+
+    @field:Valid
+    val location: LocationRequest?,
+
+    @field:NotNull(message = "Start date is required")
+    @field:FutureOrPresent(message = "Start date must be today or in the future")
+    val date: LocalDate, // Jackson automatically parses "YYYY-MM-DD"
+
+    @field:NotNull(message = "Start time is required")
+    val time: LocalTime, // Jackson automatically parses "HH:mm"
+
+    @field:FutureOrPresent(message = "End date must be in the future")
+    val endDate: LocalDate?,
+
     val isRecurring: Boolean?,
     val recurrenceType: RecurrenceType?,
-    val recurrenceEndDate: String?,  // ISO date format for when recurring events should end
+
+    @field:FutureOrPresent(message = "Recurrence end date must be in the future")
+    val recurrenceEndDate: LocalDate?,
+
+    @field:PositiveOrZero(message = "Price cannot be negative")
     val price: BigDecimal?,
+
+    @field:Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO code (e.g., USD)")
     val currency: String?
 )
 
 data class LocationRequest(
+    @field:NotBlank(message = "Location name is required")
     val name: String,
+
     val street: String?,
+
+    @field:NotBlank(message = "City is required")
     val city: String,
+
+    @field:NotBlank(message = "Country is required")
     val country: String,
+
     val postalCode: String?,
     val houseNumber: String?,
     val state: String?,
@@ -36,18 +74,25 @@ data class LocationRequest(
 )
 
 data class AdditionalDetailsRequest(
-    val danceStyles: List<UUID>,      // List of dance style IDs
-    val skillLevel: List<UUID>,       // List of skill level IDs
-    val typeOfEvent: List<UUID>,      // List of event type IDs
+    val danceStyles: List<UUID> = emptyList(),
+    val skillLevel: List<UUID> = emptyList(),
+    val typeOfEvent: List<UUID> = emptyList(),
+
+    @field:Min(value = 1, message = "Capacity must be at least 1")
     val maxAttendees: Int?,
-    val facebookEventUrl: String?     // Facebook event URL
-    // Note: registrationMode, formId, allowWaitlist, allowPartnerPairing, and requireApproval
-    // can only be set when publishing the event via PATCH /api/events/{id}/publish
+
+    @field:URL(message = "Invalid Facebook URL format")
+    val facebookEventUrl: String?
 )
 
 data class EventMedia(
-    val type: String,  // "image" or "video"
+    @field:Pattern(regexp = "^(image|video)$", message = "Type must be 'image' or 'video'")
+    val type: String,
+
+    @field:NotBlank @field:URL
     val url: String,
+
+    @field:NotNull
     val id: UUID
 )
 
@@ -61,4 +106,3 @@ enum class RecurrenceType {
     WEEKLY,
     MONTHLY
 }
-

@@ -95,16 +95,5 @@ class RecurringEventGenerator {
 
         return dates
     }
-
-    /**
-     * Calculates the total number of occurrences for a given recurrence pattern.
-     */
-    fun calculateOccurrenceCount(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        recurrenceType: RecurrenceType
-    ): Int {
-        return generateDates(startDate, endDate, recurrenceType).size
-    }
 }
 

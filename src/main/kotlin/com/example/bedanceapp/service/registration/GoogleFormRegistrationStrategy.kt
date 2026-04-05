@@ -7,7 +7,7 @@ import com.example.bedanceapp.model.User
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.UserRepository
-import com.example.bedanceapp.service.EventRegistrationManager
+import com.example.bedanceapp.service.AttendeeRegistrationService
 import com.example.bedanceapp.service.GoogleFormsService
 import tools.jackson.databind.ObjectMapper
 import com.google.api.services.forms.v1.model.Form
@@ -34,7 +34,7 @@ class GoogleFormRegistrationStrategy(
     private val googleFormsService: GoogleFormsService,
     private val userRepository: UserRepository,
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val eventRegistrationManager: EventRegistrationManager,
+    private val attendeeRegistrationService: AttendeeRegistrationService,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
     private val objectMapper: ObjectMapper
 ) : RegistrationDataStrategy {
@@ -281,7 +281,7 @@ class GoogleFormRegistrationStrategy(
                 val newRegistration = EventRegistration(
                     eventId = eventId,
                     userId = userId,
-                    status = eventRegistrationManager.assignEventStatus(registrations, eventId, RegistrationStatus.REGISTERED, null, maxAttendees), // Default status for Google Form submissions
+                    status = attendeeRegistrationService.assignEventStatus(registrations, eventId, RegistrationStatus.REGISTERED, null, maxAttendees), // Default status for Google Form submissions
                     roleId = null, // Google Forms may not have role info
                     email = email,
                     isAnonymous = true,

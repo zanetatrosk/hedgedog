@@ -20,119 +20,60 @@ class RecurringEventService(
 ) {
 
     companion object {
-        /**
-         * Maximum number of recurring events that can be generated in a single series.
-         */
         const val MAX_RECURRING_EVENTS = 30
     }
 
-    /**
-     * Creates a series of recurring events based on the provided request.
-     * If the event is not recurring, creates a single event.
-     *
-     * @param request The event creation request
-     * @param organizerId The ID of the user creating the events
-     * @param createEventFn Function to create individual events (injected to avoid circular dependency)
-     * @return List of created events
-     */
     @Transactional
     fun createRecurringEvents(
         request: CreateEventRequest,
         organizerId: UUID,
         createEventFn: (CreateEventRequest, UUID, LocalDate?, UUID?) -> Event
     ): List<Event> {
-        // If not recurring, create a single event
+        // 1. Guard Clause: If not recurring, keep it simple
         if (request.basicInfo.isRecurring != true) {
             return listOf(createEventFn(request, organizerId, null, null))
         }
 
-        // Validate recurring event requirements
-        validateRecurringEventRequest(request)
+        // 2. Validation
+        val basicInfo = request.basicInfo
+        validateRecurrence(basicInfo)
 
-        val startDate = LocalDate.parse(request.basicInfo.date)
-
-        // Use recurrenceEndDate if provided, otherwise fall back to endDate
-        // This is for generating the recurrence dates, not for storing
-        val recurrenceEndDateString = if (!request.basicInfo.recurrenceEndDate.isNullOrBlank()) {
-            request.basicInfo.recurrenceEndDate
-        } else {
-            throw IllegalArgumentException("Recurrence end date is required for recurring events")
-        }
-        val recurrenceEndDate = LocalDate.parse(recurrenceEndDateString)
-        val recurrenceType = request.basicInfo.recurrenceType!!
-
-        // Generate dates based on recurrence type
-        val dates = recurringEventGenerator.generateDates(startDate, recurrenceEndDate, recurrenceType)
-
-        if( dates.size > MAX_RECURRING_EVENTS) {
-            throw IllegalArgumentException("You cannot generate more then $MAX_RECURRING_EVENTS recurring events")
-        }
-
-        // Create parent event for grouping (don't store recurrence end date)
-        val parent = eventParentRepository.save(
-            EventParent(name = request.basicInfo.eventName)
+        // 3. Generate Dates
+        val dates = recurringEventGenerator.generateDates(
+            basicInfo.date,
+            basicInfo.recurrenceEndDate!!,
+            basicInfo.recurrenceType!!
         )
 
-        // Create individual events for each date
-        val events = mutableListOf<Event>()
-        for (date in dates) {
-            val event = createEventFn(request, organizerId, date, parent.id)
-            events.add(event)
+        require(dates.size <= MAX_RECURRING_EVENTS) {
+            "You cannot generate more than $MAX_RECURRING_EVENTS recurring events at once."
         }
 
-        return events
-    }
+        // 4. Create grouping parent
+        val parent = eventParentRepository.save(EventParent(name = basicInfo.eventName))
 
-    /**
-     * Validates that a recurring event request has all required fields.
-     */
-    private fun validateRecurringEventRequest(request: CreateEventRequest) {
-        if (request.basicInfo.recurrenceEndDate.isNullOrBlank()) {
-            throw IllegalArgumentException("End date is required for recurring events")
-        }
-
-        if (request.basicInfo.recurrenceType == null) {
-            throw IllegalArgumentException("Recurrence type is required for recurring events")
-        }
-
-        val startDate = LocalDate.parse(request.basicInfo.date)
-        val endDate = LocalDate.parse(request.basicInfo.recurrenceEndDate)
-
-        if (startDate.isAfter(endDate)) {
-            throw IllegalArgumentException("Start date must be before or equal to end date")
+        // 5. Create individual events using functional map
+        return dates.map { date ->
+            createEventFn(request, organizerId, date, parent.id)
         }
     }
 
-    /**
-     * Retrieves all upcoming dates for events that share the same parent (recurring series).
-     *
-     * @param parentEventId The ID of the parent event
-     * @return List of recurring date information sorted by date
-     */
+    private fun validateRecurrence(info: BasicInfoRequest) {
+        requireNotNull(info.recurrenceEndDate) { "Recurrence end date is required for recurring events" }
+        requireNotNull(info.recurrenceType) { "Recurrence type is required for recurring events" }
+
+        require(!info.date.isAfter(info.recurrenceEndDate)) {
+            "Start date (${info.date}) must be before or equal to recurrence end date (${info.recurrenceEndDate})"
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {
-        if (parentEventId == null) {
-            return emptyList()
-        }
-
-        val siblingEvents = eventRepository.findByParentEventId(parentEventId)
-        return siblingEvents
-            .map { sibling ->
-                RecurringDateInfo(
-                    date = sibling.eventDate.toString(),
-                    id = sibling.id.toString()
-                )
-            }
-            .sortedBy { it.date }
+        return parentEventId?.let { id ->
+            eventRepository.findByParentEventId(id)
+                .map { RecurringDateInfo(date = it.eventDate.toString(), id = it.id.toString()) }
+                .sortedBy { it.date }
+        } ?: emptyList()
     }
 }
-
-/**
- * Data class representing recurrence information for an event.
- */
-data class RecurrenceInfo(
-    val parentId: String,
-    val seriesName: String,
-    val totalOccurrences: Int,
-    val upcomingDates: List<RecurringDateInfo>
-)
 

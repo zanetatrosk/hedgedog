@@ -2,12 +2,15 @@ package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationDto
+import com.example.bedanceapp.model.User
+import com.example.bedanceapp.service.AttendeeRegistrationService
 import com.example.bedanceapp.service.EventRegistrationDataService
-import com.example.bedanceapp.service.EventRegistrationManager
-import com.example.bedanceapp.service.OrganizerAction
+import com.example.bedanceapp.service.EventRegistrationQueryService
+import com.example.bedanceapp.service.OrganizerRegistrationService
 import com.example.bedanceapp.service.StatsResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
@@ -15,8 +18,10 @@ import java.util.UUID
 @RequestMapping("/api/events")
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
 class RegistrationController(
-    private val eventRegistrationManager: EventRegistrationManager,
-    private val eventRegistrationDataService: EventRegistrationDataService
+    private val attendeeRegistrationService: AttendeeRegistrationService,
+    private val organizerRegistrationService: OrganizerRegistrationService,
+    private val eventRegistrationDataService: EventRegistrationDataService,
+    private val eventRegistrationQueryService: EventRegistrationQueryService
 ) {
 
     /**
@@ -24,18 +29,18 @@ class RegistrationController(
      * GET /api/events/{id}/stats
      */
     @GetMapping("/{id}/stats")
-    fun getEventStats(@PathVariable id: UUID): ResponseEntity<StatsResponse> {
-        val stats = eventRegistrationDataService.getAllStatsByEvent(id)
+    fun getAllEventRegistrations(@PathVariable id: UUID): ResponseEntity<StatsResponse> {
+        val stats = eventRegistrationDataService.getAllRegistrationsByEvent(id)
         return ResponseEntity.ok(stats)
     }
 
     /**
-     * Get registration data
+     * Get registrations that are approved for an event
      * GET /api/events/{id}/registrations
      */
     @GetMapping("/{id}/registrations")
     fun getApprovedRegistrations(@PathVariable id: UUID): ResponseEntity<List<EventRegistrationDto>> {
-        val registrations = eventRegistrationManager.getAllApprovedRegistrations(id);
+        val registrations = eventRegistrationQueryService.getAllApprovedRegistrations(id);
         return ResponseEntity.ok(registrations)
     }
 
@@ -47,10 +52,11 @@ class RegistrationController(
     @PutMapping("/{eventId}/registrations")
     fun createOrUpdateMyRsvp(
         @PathVariable eventId: UUID,
-        @RequestHeader("X-User-Id") userId: UUID,
+        @AuthenticationPrincipal user: User,
         @RequestBody request: RegisterEventRequest
     ): ResponseEntity<EventRegistration> {
-        val registration = eventRegistrationManager.registerUserForEvent(
+        val userId = requireNotNull(user.id) { "Authenticated user ID is missing" }
+        val registration = attendeeRegistrationService.registerUserForEvent(
             eventId = eventId,
             userId = userId,
             status = request.status,
@@ -69,9 +75,10 @@ class RegistrationController(
     fun deleteMyRsvp(
         @PathVariable eventId: UUID,
         @PathVariable registrationId: UUID,
-        @RequestHeader("X-User-Id") userId: UUID
+        @AuthenticationPrincipal user: User
     ): ResponseEntity<Map<String, String>> {
-        eventRegistrationManager.deleteRegistrationByRegistrationId(registrationId)
+        val userId = requireNotNull(user.id) { "Authenticated user ID is missing" }
+        attendeeRegistrationService.deleteRegistrationByRegistrationId(eventId, userId, registrationId)
         return ResponseEntity.ok(mapOf("message" to "Registration deleted successfully"))
     }
 
@@ -87,13 +94,11 @@ class RegistrationController(
     @PostMapping("/{eventId}/registrations/synchronization")
     fun syncGoogleFormData(
         @PathVariable eventId: UUID,
-        @RequestHeader("X-User-Id") organizerId: UUID
+        @AuthenticationPrincipal user: User
     ): ResponseEntity<Map<String, String>> {
         return try {
-            // Verify organizer permission
-            eventRegistrationManager.assertOrganizer(eventId, organizerId)
-
-            eventRegistrationManager.syncGoogleFormData(eventId)
+            val organizerId = requireNotNull(user.id) { "Authenticated user ID is missing" }
+            organizerRegistrationService.syncGoogleFormData(eventId, organizerId)
             ResponseEntity.ok(mapOf(
                 "message" to "Google Form data synced successfully",
                 "eventId" to eventId.toString()
@@ -119,35 +124,16 @@ class RegistrationController(
     fun updateRegistrationStatus(
         @PathVariable eventId: UUID,
         @PathVariable registrationId: UUID,
-        @RequestHeader("X-User-Id") userId: UUID,
+        @AuthenticationPrincipal user: User,
         @RequestBody request: RegistrationActionRequest
     ): ResponseEntity<EventRegistration> {
-
+        val userId = requireNotNull(user.id) { "Authenticated user ID is missing" }
         val updated = when (request.action) {
-            RegistrationAction.APPROVE, RegistrationAction.REJECT -> {
-                // Organizer actions - verify organizer permission
-                eventRegistrationManager.assertOrganizer(eventId, userId)
-                val organizerAction = when (request.action) {
-                    RegistrationAction.APPROVE -> OrganizerAction.APPROVE
-                    RegistrationAction.REJECT -> OrganizerAction.REJECT
-                    else -> throw IllegalArgumentException("Invalid organizer action")
-                }
-                eventRegistrationManager.handleOrganizerAction(
-                    registrationId = registrationId,
-                    action = organizerAction
-                )
-            }
-            RegistrationAction.CANCEL -> {
-                // User cancellation - verify user owns the registration
-                eventRegistrationManager.cancelRegistration(
-                    eventId = eventId,
-                    userId = userId,
-                    registrationId = registrationId
-                )
-                // Return the cancelled registration
-                eventRegistrationManager.getLastRegistrationByEventIdAndUserId(eventId, userId)
-                    ?: throw IllegalStateException("Registration not found after cancellation")
-            }
+            RegistrationAction.APPROVE, RegistrationAction.REJECT ->
+                organizerRegistrationService.updateRegistrationStatus(eventId, registrationId, userId, request.action)
+
+            RegistrationAction.CANCEL ->
+                attendeeRegistrationService.cancelRegistration(eventId, userId, registrationId)
         }
 
         return ResponseEntity.ok(updated)

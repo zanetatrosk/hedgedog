@@ -3,6 +3,7 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
+import com.example.bedanceapp.service.registration.GoogleFormRegistrationStrategy
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class GoogleFormSyncScheduler(
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
-    private val eventRegistrationManager: EventRegistrationManager
+    private val googleFormRegistrationStrategy: GoogleFormRegistrationStrategy
 ) {
     private val logger = LoggerFactory.getLogger(GoogleFormSyncScheduler::class.java)
 
@@ -42,7 +43,7 @@ class GoogleFormSyncScheduler(
             googleFormEvents.forEach { settings ->
                 try {
                     logger.debug("Syncing form data for event: {}", settings.eventId)
-                    eventRegistrationManager.syncGoogleFormData(settings.eventId)
+                    settings.event?.let { googleFormRegistrationStrategy.syncRegistrationData(it) }
                     successCount++
                     logger.debug("Successfully synced event: {}", settings.eventId)
                 } catch (e: Exception) {
