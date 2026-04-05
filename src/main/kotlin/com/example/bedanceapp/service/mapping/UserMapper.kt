@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service
+package com.example.bedanceapp.service.mapping
 
 import com.example.bedanceapp.model.ProfileData
 import com.example.bedanceapp.model.UserProfile
@@ -6,6 +6,7 @@ import com.example.bedanceapp.model.toCodebook
 import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.MediaRepository
+import com.example.bedanceapp.service.MediaService
 import org.springframework.stereotype.Component
 
 @Component
@@ -34,4 +35,5 @@ class UserMapper(
         )
     }
 }
+
 

@@ -3,11 +3,11 @@ package com.example.bedanceapp.controller
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationDto
 import com.example.bedanceapp.model.User
-import com.example.bedanceapp.service.AttendeeRegistrationService
-import com.example.bedanceapp.service.EventRegistrationDataService
-import com.example.bedanceapp.service.EventRegistrationQueryService
-import com.example.bedanceapp.service.OrganizerRegistrationService
-import com.example.bedanceapp.service.StatsResponse
+import com.example.bedanceapp.service.registration.AttendeeRegistrationService
+import com.example.bedanceapp.service.registration.EventRegistrationDataService
+import com.example.bedanceapp.service.registration.EventRegistrationQueryService
+import com.example.bedanceapp.service.registration.OrganizerRegistrationService
+import com.example.bedanceapp.service.registration.StatsResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal

@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service
+package com.example.bedanceapp.service.mapping
 
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.Location

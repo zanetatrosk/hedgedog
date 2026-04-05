@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service
+package com.example.bedanceapp.service.mapping
 
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.AttendeeStats
@@ -15,6 +15,8 @@ import com.example.bedanceapp.model.SingleEventDTO
 import com.example.bedanceapp.model.UserRegistrationStatus
 import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
+import com.example.bedanceapp.service.registration.EventRegistrationQueryService
+import com.example.bedanceapp.service.MediaService
 import org.springframework.stereotype.Component
 import java.util.UUID
 
@@ -134,5 +136,6 @@ class EventMapper(
         }
     }
 }
+
 
 

@@ -1,8 +1,8 @@
 package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.*
-import com.example.bedanceapp.service.UserEventService
-import com.example.bedanceapp.service.UserService
+import com.example.bedanceapp.service.user.UserEventService
+import com.example.bedanceapp.service.user.UserService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

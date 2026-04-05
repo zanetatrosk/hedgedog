@@ -6,7 +6,6 @@ import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.UserRepository
-import com.example.bedanceapp.service.AttendeeRegistrationService
 import com.example.bedanceapp.service.GoogleFormsService
 import com.google.api.services.forms.v1.model.Form
 import com.google.api.services.forms.v1.model.FormResponse

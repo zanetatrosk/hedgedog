@@ -7,8 +7,8 @@ import com.example.bedanceapp.model.EventDto
 import com.example.bedanceapp.model.PagedResponse
 import com.example.bedanceapp.model.PublishEventRequest
 import com.example.bedanceapp.model.User
-import com.example.bedanceapp.service.EventService
-import com.example.bedanceapp.service.OrganizerEventService
+import com.example.bedanceapp.service.event.EventService
+import com.example.bedanceapp.service.event.OrganizerEventService
 import jakarta.validation.Valid
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
