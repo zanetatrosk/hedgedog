@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service.enum
+package com.example.bedanceapp.model
 
 enum class OrganizerAction {
     APPROVE,
