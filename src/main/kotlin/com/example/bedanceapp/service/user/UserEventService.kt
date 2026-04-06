@@ -54,8 +54,7 @@ class UserEventService(
 
         // Fetch and filter by timeline
         val events = eventRepository.findAllById(eventIdsToInclude)
-        val timelineFiltered = filterByTimeline(events, timeline)
-        val allItems = groupEventsBySeries(timelineFiltered, userStatusMap, timeline)
+        val allItems = groupEventsBySeries(events, userStatusMap, timeline)
 
         val totalElements = allItems.size.toLong()
         val fromIndex = (safePage * size).coerceAtMost(allItems.size)
@@ -74,25 +73,6 @@ class UserEventService(
         )
     }
 
-    private fun filterByTimeline(events: Iterable<Event>, timeline: EventTimeline?): List<Event> {
-        if (timeline == null) return events.sortedWith(compareBy<Event> { it.eventDate }.thenBy { it.eventTime })
-
-        val today = LocalDate.now()
-        val comparator = compareBy<Event> { it.eventDate }.thenBy { it.eventTime }
-
-        return when (timeline) {
-            EventTimeline.UPCOMING ->
-                events
-                    .filter { it.eventDate >= today }
-                    .sortedWith(comparator)
-            EventTimeline.PAST ->
-                events
-                    .filter { it.eventDate < today }
-                    .sortedWith(comparator.reversed())
-        }
-    }
-
-
     private fun buildUserStatusMap(registrations: List<EventRegistration>): Map<UUID, EventRegistration> {
         val statusMap = mutableMapOf<UUID, EventRegistration>()
 
@@ -108,6 +88,7 @@ class UserEventService(
         statusMap: Map<UUID, EventRegistration>,
         timeline: EventTimeline?
     ): List<MyEvent> {
+        val today = LocalDate.now()
         val (seriesEvents, standaloneEvents) = events.partition { it.parentEventId != null }
         val groupedSeries = seriesEvents.groupBy { it.parentEventId!! }
         val parentIds = groupedSeries.keys
@@ -119,17 +100,23 @@ class UserEventService(
         val seriesResults = groupedSeries.mapNotNull { (parentId, children) ->
             val parent = parentsById[parentId] ?: return@mapNotNull null
             val sortedChildren = children.sortedWith(childComparator)
+            val seriesStartDate = sortedChildren.first().eventDate
+            val seriesEndDate = sortedChildren.last().eventDate
+
+            if (!matchesTimeline(seriesEndDate, timeline, today)) {
+                return@mapNotNull null
+            }
 
             val seriesDto = SeriesEventDto(
                 id = parentId.toString(),
                 eventName = parent.name,
                 organizer = sortedChildren.first().toOrganizerDto(),
-                overallStartDate = sortedChildren.first().eventDate.toString(),
-                overallEndDate = sortedChildren.last().eventDate.toString(),
+                overallStartDate = seriesStartDate.toString(),
+                overallEndDate = seriesEndDate.toString(),
                 occurrences = sortedChildren.map { eventMapper.toSingleEventDto(it, statusMap[it.id]?.status) }
             )
 
-            val anchor = if (timeline == EventTimeline.PAST) sortedChildren.last() else sortedChildren.first()
+            val anchor = seriesSortAnchor(sortedChildren, timeline, today)
             SortableMyEvent(
                 payload = seriesDto,
                 sortDate = anchor.eventDate,
@@ -140,7 +127,9 @@ class UserEventService(
         val orphanedChildren = groupedSeries.filterKeys { !parentsById.containsKey(it) }
             .flatMap { it.value }
 
-        val standaloneResults = (standaloneEvents + orphanedChildren).map {
+        val standaloneResults = (standaloneEvents + orphanedChildren).filter { event ->
+            matchesTimeline(event.eventDate, timeline, today)
+        }.map {
             SortableMyEvent(
                 payload = eventMapper.toSingleEventDto(it, statusMap[it.id]?.status),
                 sortDate = it.eventDate,
@@ -156,5 +145,29 @@ class UserEventService(
         }
 
         return sorted.map { it.payload }
+    }
+
+    private fun matchesTimeline(
+        endDate: LocalDate,
+        timeline: EventTimeline?,
+        today: LocalDate
+    ): Boolean {
+        return when (timeline) {
+            null -> true
+            EventTimeline.UPCOMING -> endDate >= today
+            EventTimeline.PAST -> endDate < today
+        }
+    }
+
+    private fun seriesSortAnchor(
+        children: List<Event>,
+        timeline: EventTimeline?,
+        today: LocalDate
+    ): Event {
+        return when (timeline) {
+            EventTimeline.PAST -> children.last()
+            EventTimeline.UPCOMING -> children.firstOrNull { it.eventDate >= today } ?: children.first()
+            null -> children.first()
+        }
     }
 }
