@@ -165,9 +165,17 @@ class UserEventService(
         today: LocalDate
     ): Event {
         return when (timeline) {
-            EventTimeline.PAST -> children.last()
-            EventTimeline.UPCOMING -> children.firstOrNull { it.eventDate >= today } ?: children.first()
+            EventTimeline.PAST -> pastSeriesAnchor(children)
+            EventTimeline.UPCOMING -> upcomingSeriesAnchor(children, today)
             null -> children.first()
         }
+    }
+
+    private fun upcomingSeriesAnchor(children: List<Event>, today: LocalDate): Event {
+        return children.firstOrNull { it.eventDate >= today } ?: children.first()
+    }
+
+    private fun pastSeriesAnchor(children: List<Event>): Event {
+        return children.maxWithOrNull(compareBy<Event> { it.eventDate }.thenBy { it.eventTime }) ?: children.first()
     }
 }
