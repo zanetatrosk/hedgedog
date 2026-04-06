@@ -10,10 +10,9 @@ import com.example.bedanceapp.service.mapping.EventMapper
 import com.example.bedanceapp.service.mapping.toOrganizerDto
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.get
 
 @Service
 class UserEventService(
@@ -23,72 +22,139 @@ class UserEventService(
     private val eventMapper: EventMapper
 ) {
 
+    private data class SortableMyEvent(
+        val payload: MyEvent,
+        val sortDate: LocalDate,
+        val sortTime: LocalTime
+    )
+
     @Transactional(readOnly = true)
-    fun getUserEvents(userId: UUID, filter: StatusFilter?): List<MyEvent> {
+    fun getUserEventsPaginated(
+        userId: UUID,
+        filter: StatusFilter?,
+        timeline: EventTimeline?,
+        page: Int,
+        size: Int
+    ): PagedResponse<MyEvent> {
+        require(size > 0) { "Size must be greater than 0" }
+
+        val safePage = page.coerceAtLeast(0)
         val organizedEvents = eventRepository.findByOrganizerId(userId)
         val organizedIds = organizedEvents.mapNotNull { it.id }.toSet()
         val registrations = eventRegistrationRepository.findByUserId(userId)
+        val userStatusMap = buildUserStatusMap(registrations)
 
-        // 1. Build a map of RSVP statuses for the user
-        val userStatusMap = buildUserStatusMap(organizedIds, registrations)
-
-        // 2. Determine which event IDs to include based on the filter
+        // Determine which event IDs to include based on the filter
         val eventIdsToInclude = when (filter) {
             StatusFilter.HOSTING -> organizedIds.toList()
-            StatusFilter.JOINED -> registrations.filter { it.status == RegistrationStatus.REGISTERED && it.eventId !in organizedIds }.map { it.eventId }
+            StatusFilter.JOINED -> registrations.filter { it.status != RegistrationStatus.INTERESTED && it.eventId !in organizedIds }.map { it.eventId }
             StatusFilter.INTERESTED -> registrations.filter { it.status == RegistrationStatus.INTERESTED && it.eventId !in organizedIds }.map { it.eventId }
             null -> (organizedIds + registrations.map { it.eventId }).distinct()
         }
 
-        // 3. Fetch and group events
+        // Fetch and filter by timeline
         val events = eventRepository.findAllById(eventIdsToInclude)
-        return groupEventsBySeries(events, userStatusMap)
+        val timelineFiltered = filterByTimeline(events, timeline)
+        val allItems = groupEventsBySeries(timelineFiltered, userStatusMap, timeline)
+
+        val totalElements = allItems.size.toLong()
+        val fromIndex = (safePage * size).coerceAtMost(allItems.size)
+        val toIndex = (fromIndex + size).coerceAtMost(allItems.size)
+        val pagedContent = if (fromIndex < toIndex) allItems.subList(fromIndex, toIndex) else emptyList()
+        val totalPages = if (totalElements == 0L) 0 else ((totalElements + size - 1) / size).toInt()
+        val isLast = totalPages == 0 || safePage >= totalPages - 1
+
+        return PagedResponse(
+            content = pagedContent,
+            page = safePage,
+            size = size,
+            totalElements = totalElements,
+            totalPages = totalPages,
+            isLast = isLast
+        )
     }
 
-    private fun buildUserStatusMap(organizedIds: Set<UUID>, registrations: List<EventRegistration>): Map<UUID, RsvpStatus> {
-        val statusMap = mutableMapOf<UUID, RsvpStatus>()
+    private fun filterByTimeline(events: Iterable<Event>, timeline: EventTimeline?): List<Event> {
+        if (timeline == null) return events.sortedWith(compareBy<Event> { it.eventDate }.thenBy { it.eventTime })
 
-        // Priority order: Hosting > Registered > Waitlisted > Interested
-        // We iterate in reverse priority so higher priorities overwrite lower ones
-        registrations.forEach { reg ->
-            statusMap[reg.eventId] = when (reg.status) {
-                RegistrationStatus.REGISTERED -> RsvpStatus.REGISTERED
-                RegistrationStatus.WAITLISTED -> RsvpStatus.WAITLISTED
-                RegistrationStatus.INTERESTED -> RsvpStatus.INTERESTED
-                else -> statusMap[reg.eventId] // Keep existing if status doesn't match
-            }!!
+        val today = LocalDate.now()
+        val comparator = compareBy<Event> { it.eventDate }.thenBy { it.eventTime }
+
+        return when (timeline) {
+            EventTimeline.UPCOMING ->
+                events
+                    .filter { it.eventDate >= today }
+                    .sortedWith(comparator)
+            EventTimeline.PAST ->
+                events
+                    .filter { it.eventDate < today }
+                    .sortedWith(comparator.reversed())
         }
+    }
 
-        organizedIds.forEach { statusMap[it] = RsvpStatus.HOSTING }
+
+    private fun buildUserStatusMap(registrations: List<EventRegistration>): Map<UUID, EventRegistration> {
+        val statusMap = mutableMapOf<UUID, EventRegistration>()
+
+        registrations.forEach { reg ->
+            statusMap[reg.eventId] = reg
+        }
 
         return statusMap
     }
 
-    private fun groupEventsBySeries(events: Iterable<Event>, statusMap: Map<UUID, RsvpStatus>): List<MyEvent> {
+    private fun groupEventsBySeries(
+        events: Iterable<Event>,
+        statusMap: Map<UUID, EventRegistration>,
+        timeline: EventTimeline?
+    ): List<MyEvent> {
         val (seriesEvents, standaloneEvents) = events.partition { it.parentEventId != null }
         val groupedSeries = seriesEvents.groupBy { it.parentEventId!! }
+        val parentIds = groupedSeries.keys
+        val parentsById = eventParentRepository.findAllById(parentIds)
+            .mapNotNull { parent -> parent.id?.let { id -> id to parent } }
+            .toMap()
+        val childComparator = compareBy<Event> { it.eventDate }.thenBy { it.eventTime }
 
         val seriesResults = groupedSeries.mapNotNull { (parentId, children) ->
-            val parent = eventParentRepository.findById(parentId).orElse(null) ?: return@mapNotNull null
-            val sortedChildren = children.sortedBy { it.eventDate }
+            val parent = parentsById[parentId] ?: return@mapNotNull null
+            val sortedChildren = children.sortedWith(childComparator)
 
-            EventSeriesDto(
+            val seriesDto = SeriesEventDto(
                 id = parentId.toString(),
                 eventName = parent.name,
                 organizer = sortedChildren.first().toOrganizerDto(),
                 overallStartDate = sortedChildren.first().eventDate.toString(),
                 overallEndDate = sortedChildren.last().eventDate.toString(),
-                occurrences = sortedChildren.map { eventMapper.toSingleEventDto(it, statusMap[it.id]) }
+                occurrences = sortedChildren.map { eventMapper.toSingleEventDto(it, statusMap[it.id]?.status) }
+            )
+
+            val anchor = if (timeline == EventTimeline.PAST) sortedChildren.last() else sortedChildren.first()
+            SortableMyEvent(
+                payload = seriesDto,
+                sortDate = anchor.eventDate,
+                sortTime = anchor.eventTime
             )
         }
 
-        val orphanedChildren = groupedSeries.filter { eventParentRepository.findById(it.key).isEmpty }
+        val orphanedChildren = groupedSeries.filterKeys { !parentsById.containsKey(it) }
             .flatMap { it.value }
 
         val standaloneResults = (standaloneEvents + orphanedChildren).map {
-            eventMapper.toSingleEventDto(it, statusMap[it.id])
+            SortableMyEvent(
+                payload = eventMapper.toSingleEventDto(it, statusMap[it.id]?.status),
+                sortDate = it.eventDate,
+                sortTime = it.eventTime
+            )
         }
 
-        return seriesResults + standaloneResults
+        val comparator = compareBy<SortableMyEvent> { it.sortDate }.thenBy { it.sortTime }
+        val sorted = if (timeline == EventTimeline.PAST) {
+            (seriesResults + standaloneResults).sortedWith(comparator.reversed())
+        } else {
+            (seriesResults + standaloneResults).sortedWith(comparator)
+        }
+
+        return sorted.map { it.payload }
     }
 }

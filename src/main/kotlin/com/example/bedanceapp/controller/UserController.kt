@@ -3,9 +3,11 @@ package com.example.bedanceapp.controller
 import com.example.bedanceapp.model.*
 import com.example.bedanceapp.service.user.UserEventService
 import com.example.bedanceapp.service.user.UserService
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.util.Arrays.sort
 import java.util.UUID
 
 @RestController
@@ -19,11 +21,17 @@ class UserController(
     @GetMapping("/{userId}/events")
     fun getUserEvents(
         @PathVariable userId: UUID,
-        @RequestParam(required = false) filter: StatusFilter?
-    ): ResponseEntity<List<MyEvent>> {
-        val events = userEventService.getUserEvents(userId, filter)
-        return ResponseEntity.ok(events)
+        @RequestParam(required = false) filter: StatusFilter?,
+        @RequestParam(required = false) timeline: EventTimeline?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): ResponseEntity<PagedResponse<MyEvent>> {
+        val pagedResponse = userEventService.getUserEventsPaginated(userId, filter, timeline, page, size)
+        return ResponseEntity.ok(pagedResponse)
     }
+
+
+
 
     /**
      * Get user profile data
