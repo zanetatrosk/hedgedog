@@ -75,6 +75,6 @@ class OrganizerRegistrationService(
      */
     fun syncGoogleFormData(eventId: UUID, organizerId: UUID) {
         val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId)
-        googleFormSyncService.syncRegistrationData(event)
+        googleFormSyncService.syncRegistrationData(eventId, organizerId, event.maxAttendees)
     }
 }

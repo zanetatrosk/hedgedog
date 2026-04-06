@@ -27,22 +27,20 @@ class GoogleFormSyncService(
 ) {
     private val logger = LoggerFactory.getLogger(GoogleFormSyncService::class.java)
 
-    fun syncRegistrationData(event: Event) {
-        val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
-
+    fun syncRegistrationData(eventId: UUID, organizerId: UUID, maxAttendees: Int?) {
         val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventId)
-            ?: throw IllegalArgumentException("Event ${event.id} has no registration settings")
+            ?: throw IllegalArgumentException("Event $eventId has no registration settings")
 
         val formId = registrationSettings.formId
-            ?: throw IllegalArgumentException("Event ${event.id} is set to GOOGLE_FORM mode but has no formId")
+            ?: throw IllegalArgumentException("Event $eventId is set to GOOGLE_FORM mode but has no formId")
 
-        val organizer = event.organizer
+        val organizer = userRepository.findById(organizerId).orElseThrow { IllegalArgumentException("Organizer not found with id: $organizerId") }
         logger.info("Fetching Google Form metadata for formId: $formId")
         val form = googleFormsService.getForm(organizer, formId)
         val responses = googleFormsService.getFormResponses(organizer, formId).responses ?: emptyList()
 
         transactionTemplate.executeWithoutResult {
-            saveSyncData(eventId, event.maxAttendees, form, responses)
+            saveSyncData(eventId, maxAttendees, form, responses)
         }
     }
 

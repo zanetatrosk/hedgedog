@@ -41,7 +41,7 @@ class GoogleFormSyncScheduler(
             googleFormEvents.forEach { settings ->
                 try {
                     logger.debug("Syncing form data for event: {}", settings.eventId)
-                    settings.event?.let { googleFormSyncService.syncRegistrationData(it) }
+                    settings.event?.let { googleFormSyncService.syncRegistrationData(it.id!!, it.organizerId, it.maxAttendees) }
                     successCount++
                     logger.debug("Successfully synced event: {}", settings.eventId)
                 } catch (e: Exception) {

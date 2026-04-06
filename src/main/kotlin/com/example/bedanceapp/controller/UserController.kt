@@ -30,9 +30,6 @@ class UserController(
         return ResponseEntity.ok(pagedResponse)
     }
 
-
-
-
     /**
      * Get user profile data
      * GET /api/users/{userId}
