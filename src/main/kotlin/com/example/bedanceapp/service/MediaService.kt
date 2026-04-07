@@ -4,7 +4,9 @@ import com.example.bedanceapp.config.UrlConfig
 import com.example.bedanceapp.model.EventMedia
 import com.example.bedanceapp.model.Media
 import com.example.bedanceapp.repository.MediaRepository
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.multipart.MultipartFile
 import java.io.InputStream
 import java.util.UUID
@@ -32,7 +34,7 @@ class MediaService(
         )
     }
 
-    fun upload(file: MultipartFile): EventMedia? {
+    fun upload(file: MultipartFile, ownerId: UUID): EventMedia? {
         val objectKey = UUID.randomUUID().toString()
 
         try {
@@ -50,10 +52,25 @@ class MediaService(
         val media = repository.save(
             Media(
                 mediaType = if (file.contentType?.startsWith("video") == true) "video" else "image",
-                filePath = objectKey
+                filePath = objectKey,
+                ownerId = ownerId
             )
         )
 
         return mapToDTO(media)
+    }
+
+    fun deleteMedia(mediaId: UUID, ownerId: UUID) {
+        val media = repository.findByIdAndOwnerId(mediaId, ownerId)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Media not found")
+
+        try {
+            storage.delete(media.filePath)
+            repository.delete(media)
+        } catch (e: ResponseStatusException) {
+            throw e
+        } catch (e: Exception) {
+            throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete media", e)
+        }
     }
 }

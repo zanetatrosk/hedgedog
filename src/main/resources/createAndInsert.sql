@@ -163,6 +163,7 @@ CREATE TABLE media (
                        id UUID NOT NULL DEFAULT gen_random_uuid(),
                        media_type VARCHAR(50) NOT NULL,
                        file_path TEXT NOT NULL,
+                       owner_id UUID,
                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE media ADD CONSTRAINT pk_media PRIMARY KEY (id);
@@ -239,6 +240,9 @@ ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_role FOREIGN KEY (role
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_general_skill FOREIGN KEY (general_skill_level_id) REFERENCES skill_levels (id) ON DELETE SET NULL;
 ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_avatar_media FOREIGN KEY (avatar_media_id) REFERENCES media (id) ON DELETE SET NULL;
 
+-- media references
+ALTER TABLE media ADD CONSTRAINT fk_media_owner FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE SET NULL;
+
 -- events references
 ALTER TABLE events ADD CONSTRAINT fk_events_organizer FOREIGN KEY (organizer_id) REFERENCES users (id) ON DELETE CASCADE;
 ALTER TABLE events ADD CONSTRAINT fk_events_parent FOREIGN KEY (parent_event_id) REFERENCES event_parents (id) ON DELETE SET NULL;
@@ -282,6 +286,7 @@ CREATE INDEX idx_registrations_user ON registrations(user_id);
 CREATE INDEX idx_user_dance_styles_user ON user_dance_styles(user_id);
 CREATE INDEX idx_user_dance_styles_dance ON user_dance_styles(dance_style_id);
 CREATE INDEX idx_user_media_user ON user_media(user_id);
+CREATE INDEX idx_media_owner ON media(owner_id);
 
 -- =====================================================
 -- SEED DATA - Predefined Values

@@ -33,6 +33,7 @@ class SecurityConfiguration(
                     .requestMatchers(HttpMethod.GET, "/api/skill-levels/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/event-types/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/app/summary").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
 
                     // All other endpoints require authentication
                     .anyRequest().authenticated()

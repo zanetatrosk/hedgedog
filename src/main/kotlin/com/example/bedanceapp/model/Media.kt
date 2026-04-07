@@ -17,6 +17,9 @@ data class Media(
     @Column(name = "file_path", nullable = false, columnDefinition = "TEXT")
     val filePath: String,
 
+    @Column(name = "owner_id")
+    val ownerId: UUID? = null,
+
     @Column(name = "created_at", updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

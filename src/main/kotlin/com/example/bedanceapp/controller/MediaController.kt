@@ -1,10 +1,11 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.config.UrlConfig
 import com.example.bedanceapp.model.EventMedia
+import com.example.bedanceapp.model.User
 import com.example.bedanceapp.service.MediaService
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.util.UUID
@@ -19,13 +20,16 @@ class MediaController(
     /**
      * Upload image or video
      */
-    @PostMapping("/upload")
+    @PostMapping
     fun uploadMedia(
+        @AuthenticationPrincipal user: User,
         @RequestParam("file") file: MultipartFile
     ): ResponseEntity<EventMedia> {
 
+        val ownerId = user.id ?: return ResponseEntity.status(403).build()
+
         // 🔐 auth can be checked inside service
-        val media = mediaService.upload(file) ?: return ResponseEntity.badRequest().build()
+        val media = mediaService.upload(file, ownerId) ?: return ResponseEntity.badRequest().build()
 
         return ResponseEntity.ok(
             media
@@ -49,5 +53,15 @@ class MediaController(
         stream.use { input ->
             input.copyTo(response.outputStream)
         }
+    }
+
+    @DeleteMapping("/{id}")
+    fun deleteMedia(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal user: User
+    ): ResponseEntity<Void> {
+        val ownerId = user.id ?: return ResponseEntity.status(403).build()
+        mediaService.deleteMedia(id, ownerId)
+        return ResponseEntity.noContent().build()
     }
 }
