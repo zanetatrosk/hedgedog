@@ -33,7 +33,6 @@ class CoupleModeRegistrationStrategy(
 
         // Insert role header before CREATED_AT (last item)
         return baseHeaders.dropLast(1) + CoupleHeaders.role(dancerRoles) + baseHeaders.last()
-        // CoupleHeaders.PARTNER, // TODO: Add when implementing partner matching feature
     }
 
     /**
@@ -42,7 +41,7 @@ class CoupleModeRegistrationStrategy(
      */
     override fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
         val baseDataFields = super.buildDataFields(registration, fullName)
-        val roleData = RegistrationDataDto("role", registration.role?.name ?: "")
+        val roleData = RegistrationDataDto(CoupleHeaders.ROLE_ID, registration.role?.name ?: "")
 
         // Insert role data before CREATED_AT (last item)
         return baseDataFields.dropLast(1) + roleData + baseDataFields.last()

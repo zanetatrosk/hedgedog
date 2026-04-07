@@ -79,7 +79,7 @@ open class OpenModeRegistrationStrategy(
         return listOf(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
             RegistrationDataDto(RegistrationHeaders.EMAIL.id, registration.user?.email ?: ""),
-            RegistrationDataDto(RegistrationHeaders.EXPERIENCE.id, registration.user?.profile?.generalSkillLevel?.name ?: ""),
+            RegistrationDataDto(RegistrationHeaders.EXPERIENCE_ID, registration.user?.profile?.generalSkillLevel?.name ?: ""),
             RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
         )
     }

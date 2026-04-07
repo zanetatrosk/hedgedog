@@ -91,41 +91,45 @@ data class StructuredForm (
  * Common headers used across registration modes
  */
 object RegistrationHeaders {
-    val FULLNAME = TextHeader("fullname", "Full name")
-    val EMAIL = TextHeader("email", "Email")
-    val EXPERIENCE = TextHeader("experience", "Experience level")
+    const val FULLNAME_ID = "fullname"
+    const val EMAIL_ID = "email"
+    const val EXPERIENCE_ID = "experience"
+    const val CREATED_AT_ID = "createdAt"
 
+    val FULLNAME = TextHeader(FULLNAME_ID, "Full name")
+    val EMAIL = TextHeader(EMAIL_ID, "Email")
 
     /**
      * Create EXPERIENCE header with answer set from database
      */
     fun experience(skillLevels: List<SkillLevel>): ChoiceHeader {
         return ChoiceHeader(
-            EXPERIENCE.id,
-            EXPERIENCE.question,
+            EXPERIENCE_ID,
+            "Experience level",
             skillLevels.sortedBy { it.levelOrder }.map { it.name }
         )
     }
 
-    val CREATED_AT = TextHeader("createdAt", "Created at")
+    val CREATED_AT = TextHeader(CREATED_AT_ID, "Created at")
 }
 
 /**
  * Headers specific to couple mode
  */
 object CoupleHeaders {
+    const val ROLE_ID = "role"
+
     /**
      * Create ROLE header with answer set from database
      */
     fun role(dancerRoles: List<DancerRole>): ChoiceHeader {
         return ChoiceHeader(
-            "role",
+            ROLE_ID,
             "Role",
             dancerRoles.map { it.name }
         )
     }
 
-    val PARTNER = TextHeader("partner", "Partner")
 }
 
 /**
