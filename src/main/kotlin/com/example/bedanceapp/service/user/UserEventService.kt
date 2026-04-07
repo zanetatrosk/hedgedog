@@ -84,7 +84,7 @@ class UserEventService(
                     organizer = sortedChildren.first().toOrganizerDto(),
                     overallStartDate = sortedChildren.first().eventDate.toString(),
                     overallEndDate = sortedChildren.last().eventDate.toString(),
-                    occurrences = sortedChildren.map { eventMapper.toSingleEventDto(it, statusMap[it.id]?.status) }
+                    occurrences = sortedChildren.map { eventMapper.toSingleEventDto(it, statusMap[it.id]) }
                 )
                 SortableMyEvent(dto, anchor.eventDate, anchor.eventTime)
             }
@@ -93,7 +93,7 @@ class UserEventService(
         val standaloneResults = (standaloneEvents + findOrphans(seriesCandidates, parentsMap)).filter {
             matchesTimeline(it.eventDate, timeline, today)
         }.map {
-            SortableMyEvent(eventMapper.toSingleEventDto(it, statusMap[it.id]?.status), it.eventDate, it.eventTime)
+            SortableMyEvent(eventMapper.toSingleEventDto(it, statusMap[it.id]), it.eventDate, it.eventTime)
         }
 
         // Final Sorting

@@ -27,7 +27,7 @@ class RegistrationRecalculateService(
         val settings = eventRegistrationSettingsRepository.findByEventId(eventId)
         val allRegistrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)
         val activeRegistrations = allRegistrations.filter {
-            it.status == RegistrationStatus.REGISTERED || it.status == RegistrationStatus.PENDING
+            it.status == RegistrationStatus.REGISTERED
         }
         val waitlisted = allRegistrations
             .filter { it.status == RegistrationStatus.WAITLISTED }
@@ -35,14 +35,10 @@ class RegistrationRecalculateService(
 
         if (waitlisted.isEmpty()) return
 
-        val targetStatus = if (settings?.requireApproval == true) {
-            RegistrationStatus.PENDING
-        } else {
-            RegistrationStatus.REGISTERED
-        }
+        val targetStatus = RegistrationStatus.REGISTERED
 
         val activeCount = allRegistrations.count {
-            it.status == RegistrationStatus.REGISTERED || it.status == RegistrationStatus.PENDING
+            it.status == RegistrationStatus.REGISTERED
         }
 
         val updates = if (settings?.registrationMode == RegistrationMode.COUPLE) {

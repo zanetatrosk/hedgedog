@@ -21,6 +21,7 @@ data class SingleEventDTO(
     override val displayMode: MyEventDisplayMode = MyEventDisplayMode.SINGLE,
     val userStatus: RegistrationStatus? = null,
     val status: EventStatus,
+    val role: CodebookItem? = null,
     val date: String,
     val time: String,
     val location: LocationRequest?,

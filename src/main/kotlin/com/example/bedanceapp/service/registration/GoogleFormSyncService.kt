@@ -1,7 +1,6 @@
 package com.example.bedanceapp.service.registration
 
 import com.example.bedanceapp.controller.RegistrationStatus
-import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
@@ -20,7 +19,7 @@ class GoogleFormSyncService(
     private val googleFormsService: GoogleFormsService,
     private val userRepository: UserRepository,
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val attendeeRegistrationService: AttendeeRegistrationService,
+    private val registrationStatusService: RegistrationStatusService,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
     private val googleFormMapper: GoogleFormMapper,
     private val transactionTemplate: TransactionTemplate
@@ -110,10 +109,10 @@ class GoogleFormSyncService(
                 val newRegistration = EventRegistration(
                     eventId = eventId,
                     userId = userId,
-                    status = attendeeRegistrationService.assignEventStatus(
+                    status = registrationStatusService.assignRegistrationStatus(
                         registrations,
-                        eventId,
                         RegistrationStatus.REGISTERED,
+                        eventId,
                         null,
                         maxAttendees
                     ),

@@ -6,6 +6,7 @@ import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.OrganizerAction
 import com.example.bedanceapp.repository.EventRegistrationRepository
+import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.service.EventAccessValidator
 import com.example.bedanceapp.service.RegistrationAccessValidator
@@ -17,10 +18,12 @@ import java.util.UUID
 class OrganizerRegistrationService(
     private val eventRegistrationRepository: EventRegistrationRepository,
     private val eventRepository: EventRepository,
+    private val registrationStatusService: RegistrationStatusService,
     private val registrationRecalculateService: RegistrationRecalculateService,
     private val googleFormSyncService: GoogleFormSyncService,
     private val eventAccessValidator: EventAccessValidator,
-    private val registrationAccessValidator: RegistrationAccessValidator
+    private val registrationAccessValidator: RegistrationAccessValidator,
+    private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
 ) {
 
     @Transactional
@@ -44,9 +47,12 @@ class OrganizerRegistrationService(
 
     @Transactional
     fun handleOrganizerAction(registration: EventRegistration, action: OrganizerAction): EventRegistration {
+        val event = eventRepository.findById(registration.eventId)
+            .orElseThrow { IllegalArgumentException("Event not found with id: ${registration.eventId}") }
+
         val newStatus = when (action) {
             OrganizerAction.APPROVE -> when (registration.status) {
-                RegistrationStatus.PENDING -> RegistrationStatus.REGISTERED
+                RegistrationStatus.PENDING -> resolveApprovedStatus(registration, event.maxAttendees)
                 else -> throw IllegalStateException("Cannot approve from ${registration.status}")
             }
 
@@ -60,8 +66,6 @@ class OrganizerRegistrationService(
         eventRegistrationRepository.flush()
 
         if (action == OrganizerAction.REJECT) {
-            val event = eventRepository.findById(registration.eventId)
-                .orElseThrow { IllegalArgumentException("Event not found with id: ${registration.eventId}") }
             event.maxAttendees?.let { maxAttendees ->
                 registrationRecalculateService.recalculate(registration.eventId, maxAttendees)
             }
@@ -76,5 +80,19 @@ class OrganizerRegistrationService(
     fun syncGoogleFormData(eventId: UUID, organizerId: UUID) {
         val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId)
         googleFormSyncService.syncRegistrationData(eventId, organizerId, event.maxAttendees)
+    }
+
+    private fun resolveApprovedStatus(registration: EventRegistration, maxAttendees: Int?): RegistrationStatus {
+        val registrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(registration.eventId)
+            .filter { it.id != registration.id }
+        val settings = eventRegistrationSettingsRepository.findByEventId(registration.eventId)
+
+        return registrationStatusService.resolveApprovedStatus(
+            registrations = registrations,
+            roleId = registration.roleId,
+            maxAttendees = maxAttendees,
+            settings = settings
+        )
+
     }
 }

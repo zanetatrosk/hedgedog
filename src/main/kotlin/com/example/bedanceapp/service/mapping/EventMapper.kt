@@ -6,12 +6,14 @@ import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventDetailAdditionalDetails
 import com.example.bedanceapp.model.EventDetailBasicInfo
 import com.example.bedanceapp.model.EventDetailDto
+import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventSummaryDto
 import com.example.bedanceapp.model.RecurringDateInfo
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.model.RegistrationStats
 import com.example.bedanceapp.model.SingleEventDTO
 import com.example.bedanceapp.model.UserRegistrationStatus
+import com.example.bedanceapp.model.toCodebook
 import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.service.registration.EventRegistrationQueryService
@@ -106,7 +108,7 @@ class EventMapper(
         )
     }
 
-    fun toSingleEventDto(event: Event, userStatus: RegistrationStatus?): SingleEventDTO {
+    fun toSingleEventDto(event: Event, registration: EventRegistration?): SingleEventDTO {
         val eventId = event.id ?: throw IllegalStateException("Event ID cannot be null")
         val stats = eventRegistrationQueryService.getRegistrationRolesCountsByEventId(eventId)
         val interestedCount = eventRegistrationQueryService.getRegistrationCountByEventId(eventId, RegistrationStatus.INTERESTED)
@@ -116,7 +118,8 @@ class EventMapper(
             eventName = event.eventName,
             organizer = event.toOrganizerDto(),
             status = event.status,
-            userStatus = userStatus,
+            userStatus = registration?.status,
+            role = registration?.role?.toCodebook(),
             date = event.eventDate.toString(),
             time = event.eventTime.toString(),
             location = event.location.toLocationDto(),
