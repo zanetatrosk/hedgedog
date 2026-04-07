@@ -1,5 +1,6 @@
 package com.example.bedanceapp.service.mapping
 
+import com.example.bedanceapp.model.EventMedia
 import com.example.bedanceapp.model.UserProfileDto
 import com.example.bedanceapp.model.UserProfile
 import com.example.bedanceapp.model.toCodebook
@@ -8,6 +9,7 @@ import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.MediaRepository
 import com.example.bedanceapp.service.MediaService
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 class UserMapper(
@@ -15,13 +17,17 @@ class UserMapper(
     private val dancerRoleRepository: DancerRoleRepository,
     private val mediaRepository: MediaRepository
 ) {
+    fun getAvatarMedia(avatarMediaId: UUID?): EventMedia? {
+        return avatarMediaId?.let { avatarId ->
+            mediaRepository.findById(avatarId).orElse(null)?.let { mediaService.mapToDTO(it) }
+        }
+    }
+
     fun toProfileData(profile: UserProfile): UserProfileDto {
         val role = profile.roleId?.let { roleId ->
             dancerRoleRepository.findById(roleId).orElse(null)?.toCodebook()
         }
-        val avatar = profile.avatarMediaId?.let { avatarId ->
-            mediaRepository.findById(avatarId).orElse(null)?.let { mediaService.mapToDTO(it) }
-        }
+        val avatar = getAvatarMedia(profile.avatarMediaId)
 
         return UserProfileDto(
             firstName = profile.firstName,

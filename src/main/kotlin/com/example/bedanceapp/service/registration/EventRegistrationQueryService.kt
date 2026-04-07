@@ -4,9 +4,8 @@ import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationStats
 import com.example.bedanceapp.model.EventRegistrationDto
-import com.example.bedanceapp.model.RegistrationUserDto
 import com.example.bedanceapp.repository.EventRegistrationRepository
-import com.example.bedanceapp.repository.UserRepository
+import com.example.bedanceapp.service.mapping.EventRegistrationMapper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -18,7 +17,7 @@ import java.util.UUID
 @Service
 class EventRegistrationQueryService(
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val userRepository: UserRepository
+    private val eventRegistrationMapper: EventRegistrationMapper
 ) {
     @Transactional(readOnly = true)
     fun getRegistrationCountByEventId(eventId: UUID?, state: RegistrationStatus): Int {
@@ -51,32 +50,10 @@ class EventRegistrationQueryService(
         )
     }
 
-    fun getAllApprovedRegistrations(eventId: UUID): List<EventRegistrationDto>{
+    @Transactional(readOnly = true)
+    fun getAllApprovedRegistrations(eventId: UUID): List<EventRegistrationDto> {
         val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED)
-
-        return registrations.map { registration ->
-            // Fetch user data for level, but only expose user info if not anonymous
-            val user = registration.userId?.let { userId ->
-                userRepository.findById(userId).orElse(null)
-            }
-
-            EventRegistrationDto(
-                registrationId = registration.id.toString(),
-                user = if (registration.isAnonymous) {
-                    null  // Hide user information when anonymous
-                } else {
-                    user?.let { u ->
-                        RegistrationUserDto(
-                            userId = u.id.toString(),
-                            name = "${u.profile?.firstName ?: ""} ${u.profile?.lastName ?: ""}".trim(),
-                            avatar = u.profile?.avatarMediaId?.toString()
-                        )
-                    }
-                },
-                level = user?.profile?.generalSkillLevel?.name,  // Still show level
-                role = registration.role?.name  // Still show role
-            )
-        }
+        return eventRegistrationMapper.toDtoList(registrations)
     }
 }
 

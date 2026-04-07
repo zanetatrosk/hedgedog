@@ -10,6 +10,6 @@ data class EventRegistrationDto(
 data class RegistrationUserDto(
     val userId: String,
     val name: String,
-    val avatar: String? = null
+    val avatar: EventMedia? = null
 )
 
