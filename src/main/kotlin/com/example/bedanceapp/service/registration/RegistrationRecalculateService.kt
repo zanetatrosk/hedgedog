@@ -8,6 +8,7 @@ import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
@@ -61,7 +62,7 @@ class RegistrationRecalculateService(
         val spotsAvailable = maxAttendees - activeCount
         if (spotsAvailable <= 0) return emptyList()
 
-        return waitlisted.take(spotsAvailable).map { it.copy(status = targetStatus) }
+        return waitlisted.take(spotsAvailable).map { it.copy(status = targetStatus, updatedAt = LocalDateTime.now()) }
     }
 
     private fun calculateCoupleModePromotions(
@@ -97,7 +98,10 @@ class RegistrationRecalculateService(
                         ?.firstOrNull { it.status == RegistrationStatus.WAITLISTED }
 
                     if (nextWaitlisted != null) {
-                        val updatedRegistration = nextWaitlisted.copy(status = targetStatus)
+                        val updatedRegistration = nextWaitlisted.copy(
+                            status = targetStatus,
+                            updatedAt = LocalDateTime.now()
+                        )
                         updates.add(updatedRegistration)
                         waitlistedByRole[roleId]?.remove(nextWaitlisted)
                         promoted = true

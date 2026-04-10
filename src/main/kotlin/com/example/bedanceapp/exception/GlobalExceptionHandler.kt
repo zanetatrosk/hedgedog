@@ -1,5 +1,6 @@
 package com.example.bedanceapp.exception
 
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -18,6 +19,12 @@ class GlobalExceptionHandler {
             errors[fieldName] = errorMessage
         }
         return ResponseEntity.badRequest().body(errors)
+    }
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(mapOf("message" to (ex.message ?: "Bad request")))
     }
 }
 

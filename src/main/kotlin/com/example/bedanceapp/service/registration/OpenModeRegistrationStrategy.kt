@@ -35,7 +35,7 @@ open class OpenModeRegistrationStrategy(
             RegistrationHeaders.FULLNAME,
             RegistrationHeaders.EMAIL,
             RegistrationHeaders.experience(skillLevels),
-            RegistrationHeaders.CREATED_AT
+            RegistrationHeaders.UPDATED_AT
         )
     }
 
@@ -80,7 +80,7 @@ open class OpenModeRegistrationStrategy(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
             RegistrationDataDto(RegistrationHeaders.EMAIL.id, registration.user?.email ?: ""),
             RegistrationDataDto(RegistrationHeaders.EXPERIENCE_ID, registration.user?.profile?.generalSkillLevel?.name ?: ""),
-            RegistrationDataDto(RegistrationHeaders.CREATED_AT.id, registration.createdAt.toString())
+            RegistrationDataDto(RegistrationHeaders.UPDATED_AT.id, registration.updatedAt.toString())
         )
     }
 

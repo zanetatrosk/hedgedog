@@ -12,6 +12,7 @@ import com.example.bedanceapp.repository.UserRepository
 import com.example.bedanceapp.service.RegistrationAccessValidator
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
@@ -96,7 +97,12 @@ class AttendeeRegistrationService(
             registrationRecalculateService.recalculate(eventId, maxAttendees)
         }
 
-        return eventRegistrationRepository.save(registrationToCancel.copy(status = RegistrationStatus.CANCELLED))
+        return eventRegistrationRepository.save(
+            registrationToCancel.copy(
+                status = RegistrationStatus.CANCELLED,
+                updatedAt = LocalDateTime.now()
+            )
+        )
     }
 
     private fun getPublishedEvent(eventId: UUID): Event {

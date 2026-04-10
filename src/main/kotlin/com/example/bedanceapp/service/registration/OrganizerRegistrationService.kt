@@ -12,6 +12,7 @@ import com.example.bedanceapp.service.EventAccessValidator
 import com.example.bedanceapp.service.RegistrationAccessValidator
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
@@ -62,7 +63,12 @@ class OrganizerRegistrationService(
             }
         }
 
-        val savedRegistration = eventRegistrationRepository.save(registration.copy(status = newStatus))
+        val savedRegistration = eventRegistrationRepository.save(
+            registration.copy(
+                status = newStatus,
+                updatedAt = LocalDateTime.now()
+            )
+        )
         eventRegistrationRepository.flush()
 
         if (action == OrganizerAction.REJECT) {

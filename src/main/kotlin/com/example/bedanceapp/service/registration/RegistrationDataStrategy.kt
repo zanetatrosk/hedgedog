@@ -94,7 +94,7 @@ object RegistrationHeaders {
     const val FULLNAME_ID = "fullname"
     const val EMAIL_ID = "email"
     const val EXPERIENCE_ID = "experience"
-    const val CREATED_AT_ID = "createdAt"
+    const val UPDATED_AT_ID = "updatedAt"
 
     val FULLNAME = TextHeader(FULLNAME_ID, "Full name")
     val EMAIL = TextHeader(EMAIL_ID, "Email")
@@ -110,7 +110,7 @@ object RegistrationHeaders {
         )
     }
 
-    val CREATED_AT = TextHeader(CREATED_AT_ID, "Created at")
+    val UPDATED_AT = TextHeader(UPDATED_AT_ID, "Last updated")
 }
 
 /**

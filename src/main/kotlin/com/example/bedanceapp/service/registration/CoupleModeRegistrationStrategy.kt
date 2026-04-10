@@ -25,25 +25,25 @@ class CoupleModeRegistrationStrategy(
 
     /**
      * Override to add role header for couple mode
-     * Calls parent to get base headers and inserts role header before the last item (CREATED_AT)
+     * Calls parent to get base headers and inserts role header before the last item (UPDATED_AT)
      */
     override fun getHeaders(): List<Header> {
         val baseHeaders = super.getHeaders()
         val dancerRoles = dancerRoleRepository.findAll()
 
-        // Insert role header before CREATED_AT (last item)
+        // Insert role header before UPDATED_AT (last item)
         return baseHeaders.dropLast(1) + CoupleHeaders.role(dancerRoles) + baseHeaders.last()
     }
 
     /**
      * Override to add role data field
-     * Calls parent to get base data fields and inserts role data before the last item (CREATED_AT)
+     * Calls parent to get base data fields and inserts role data before the last item (UPDATED_AT)
      */
     override fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
         val baseDataFields = super.buildDataFields(registration, fullName)
         val roleData = RegistrationDataDto(CoupleHeaders.ROLE_ID, registration.role?.name ?: "")
 
-        // Insert role data before CREATED_AT (last item)
+        // Insert role data before UPDATED_AT (last item)
         return baseDataFields.dropLast(1) + roleData + baseDataFields.last()
     }
 }

@@ -13,7 +13,7 @@ import java.util.UUID
 @Service
 class EventService(
     private val eventRepository: EventRepository,
-    private val recurringEventService: RecurringEventService,
+    private val createEventService: CreateEventService,
     private val eventMapper: EventMapper
 ) {
 
@@ -46,7 +46,7 @@ class EventService(
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 
         val parentEventId = event.parentEventId
-        val recurringDates = recurringEventService.getUpcomingDates(parentEventId)
+        val recurringDates = createEventService.getUpcomingDates(parentEventId)
         return eventMapper.toDetailData(event, userId, recurringDates)
     }
 }

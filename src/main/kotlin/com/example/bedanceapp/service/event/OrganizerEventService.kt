@@ -27,18 +27,15 @@ class OrganizerEventService(
     private val registrationRecalculateService: RegistrationRecalculateService,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val recurringEventService: RecurringEventService,
+    private val createEventService: CreateEventService,
     private val eventAccessValidator: EventAccessValidator
 ) {
 
     @Transactional
     fun createEventByOccurrence(request: CreateUpdateEventDto, organizerId: UUID): List<Event> {
-        return recurringEventService.createRecurringEvents(
+        return createEventService.createSingleEventOrRecurringEvents(
             request = request,
             organizerId = organizerId,
-            createEventFn = { req, orgId, date, parentId ->
-                createEvent(req, orgId, date, parentId)
-            }
         )
     }
 
@@ -65,8 +62,11 @@ class OrganizerEventService(
 
         val registrationMode = publishRequest?.registrationMode ?: RegistrationMode.OPEN
         val formId = publishRequest?.formId
-        if (registrationMode == RegistrationMode.GOOGLE_FORM && formId.isNullOrBlank()) {
-            throw IllegalArgumentException("Form ID is required when registration mode is GOOGLE_FORM")
+        require(!event.eventDate.isBefore(LocalDate.now())) {
+            "Event date must be today or in the future."
+        }
+        require(registrationMode != RegistrationMode.GOOGLE_FORM || formId != null) {
+            "Form ID must be provided when using GOOGLE_FORM registration mode."
         }
 
         val registrationSettings = EventRegistrationSettings(

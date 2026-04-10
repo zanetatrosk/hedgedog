@@ -15,7 +15,7 @@ class RecurringEventGenerator {
      *
      * @param startDate The starting date of the recurrence
      * @param endDate The ending date of the recurrence (inclusive)
-     * @param recurrenceType The type of recurrence (DAILY, WEEKLY, MONTHLY)
+     * @param recurrenceType The type of recurrence (DAILY, WEEKLY)
      * @return List of LocalDate representing each occurrence
      */
     fun generateDates(
@@ -28,7 +28,6 @@ class RecurringEventGenerator {
         return when (recurrenceType) {
             RecurrenceType.DAILY -> generateDailyDates(startDate, endDate)
             RecurrenceType.WEEKLY -> generateWeeklyDates(startDate, endDate)
-            RecurrenceType.MONTHLY -> generateMonthlyDates(startDate, endDate)
         }
     }
 
@@ -74,26 +73,10 @@ class RecurringEventGenerator {
             dates.add(currentDate)
             currentDate = currentDate.plusWeeks(1)
         }
+        require(dates.last() == endDate) {"end date of ocurrance does not match with the day of week when event was started"}
 
         return dates
     }
 
-    /**
-     * Generates dates for monthly recurrence.
-     * Maintains the same day of the month, adjusting for months with fewer days.
-     * For example, if startDate is January 31, February will be adjusted to February 28/29.
-     */
-    private fun generateMonthlyDates(startDate: LocalDate, endDate: LocalDate): List<LocalDate> {
-        val dates = mutableListOf<LocalDate>()
-        var currentDate = startDate
-
-        while (!currentDate.isAfter(endDate)) {
-            dates.add(currentDate)
-            currentDate = currentDate.plusMonths(1)
-            // Note: plusMonths already handles months with fewer days by clamping to the last valid day
-        }
-
-        return dates
-    }
 }
 

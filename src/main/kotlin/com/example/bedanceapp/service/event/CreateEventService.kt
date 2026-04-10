@@ -13,10 +13,11 @@ import java.util.UUID
  * This service encapsulates all logic related to creating and managing recurring events.
  */
 @Service
-class RecurringEventService(
+class CreateEventService(
     private val recurringEventGenerator: RecurringEventGenerator,
     private val eventParentRepository: EventParentRepository,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val eventAssembler: EventAssembler
 ) {
 
     companion object {
@@ -24,14 +25,13 @@ class RecurringEventService(
     }
 
     @Transactional
-    fun createRecurringEvents(
+    fun createSingleEventOrRecurringEvents(
         request: CreateUpdateEventDto,
-        organizerId: UUID,
-        createEventFn: (CreateUpdateEventDto, UUID, LocalDate?, UUID?) -> Event
+        organizerId: UUID
     ): List<Event> {
         // 1. Guard Clause: If not recurring, keep it simple
         if (request.basicInfo.isRecurring != true) {
-            return listOf(createEventFn(request, organizerId, null, null))
+            return listOf(eventAssembler.buildEventFromRequest(request, organizerId))
         }
 
         // 2. Validation
@@ -53,9 +53,9 @@ class RecurringEventService(
         val parent = eventParentRepository.save(EventParent(name = basicInfo.eventName))
 
         // 5. Create individual events using functional map
-        return dates.map { date ->
-            createEventFn(request, organizerId, date, parent.id)
-        }
+        return eventRepository.saveAll(dates.map { date ->
+            eventAssembler.buildEventFromRequest(request, organizerId, date, parent.id)
+        })
     }
 
     private fun validateRecurrence(info: BasicInfoRequest) {
@@ -66,6 +66,7 @@ class RecurringEventService(
             "Start date (${info.date}) must be before or equal to recurrence end date (${info.recurrenceEndDate})"
         }
     }
+
 
     @Transactional(readOnly = true)
     fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {

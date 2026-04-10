@@ -103,6 +103,5 @@ data class CreateEventResponse(
 
 enum class RecurrenceType {
     DAILY,
-    WEEKLY,
-    MONTHLY
+    WEEKLY
 }

@@ -11,6 +11,7 @@ import com.google.api.services.forms.v1.model.FormResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.LocalDateTime
 import java.time.Instant
 import java.util.UUID
 
@@ -137,7 +138,12 @@ class GoogleFormSyncService(
 
     private fun maybeUpdateUserId(existingRegistration: EventRegistration, registrationRow: RegistrationRow) {
         if (registrationRow.user.userId != null && existingRegistration.userId == null) {
-            eventRegistrationRepository.save(existingRegistration.copy(userId = registrationRow.user.userId))
+            eventRegistrationRepository.save(
+                existingRegistration.copy(
+                    userId = registrationRow.user.userId,
+                    updatedAt = LocalDateTime.now()
+                )
+            )
         }
     }
 
@@ -157,7 +163,10 @@ class GoogleFormSyncService(
 
         if (shouldUpdate) {
             eventRegistrationRepository.save(
-                existingRegistration.copy(formResponses = googleFormMapper.writeRowStructure(registrationRow))
+                existingRegistration.copy(
+                    formResponses = googleFormMapper.writeRowStructure(registrationRow),
+                    updatedAt = LocalDateTime.now()
+                )
             )
         }
     }
