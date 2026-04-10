@@ -62,24 +62,35 @@ class AttendeeRegistrationService(
         val existing = eventRegistrationRepository.findByEventIdAndUserId(eventId, userId).lastOrNull()
         val role = resolveRole(roleId)
         val allRegistrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)
+        val now = LocalDateTime.now()
+        val resolvedStatus = registrationStatusService.assignRegistrationStatus(
+            allRegistrations,
+            status,
+            eventId,
+            role?.id,
+            event.maxAttendees
+        )
 
         val registration = EventRegistration(
             id = existing?.id,
             eventId = eventId,
             userId = userId,
-            status = registrationStatusService.assignRegistrationStatus(
-                allRegistrations,
-                status,
-                eventId,
-                role?.id,
-                event.maxAttendees
-            ),
+            status = resolvedStatus,
             roleId = role?.id,
             role = role,
             email = userEmail,
             isAnonymous = isAnonymous,
-            formResponses = null
+            formResponses = null,
+            updatedAt = now,
+            waitlistedAt = RegistrationWaitlistTimestampResolver.resolve(
+                existing?.status,
+                existing?.waitlistedAt,
+                resolvedStatus,
+                now
+            )
         )
+
+        existing?.status?.requireTransitionTo(registration.status)
 
         return eventRegistrationRepository.save(registration)
     }
@@ -89,9 +100,7 @@ class AttendeeRegistrationService(
         val event = getPublishedEvent(eventId)
         val registrationToCancel = registrationAccessValidator.requireForUserInEvent(registrationId, eventId, userId)
 
-        if (registrationToCancel.status == RegistrationStatus.INTERESTED) {
-            throw IllegalArgumentException("Cannot cancel an interested registration")
-        }
+        registrationToCancel.status.requireTransitionTo(RegistrationStatus.CANCELLED)
 
         event.maxAttendees?.let { maxAttendees ->
             registrationRecalculateService.recalculate(eventId, maxAttendees)
@@ -100,7 +109,8 @@ class AttendeeRegistrationService(
         return eventRegistrationRepository.save(
             registrationToCancel.copy(
                 status = RegistrationStatus.CANCELLED,
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
+                waitlistedAt = null
             )
         )
     }

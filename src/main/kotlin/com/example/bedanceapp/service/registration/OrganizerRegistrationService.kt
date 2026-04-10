@@ -34,7 +34,7 @@ class OrganizerRegistrationService(
         organizerId: UUID,
         action: RegistrationAction
     ): EventRegistration {
-        eventAccessValidator.requireOwnedEvent(eventId, organizerId, EventStatus.PUBLISHED)
+        val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId, EventStatus.PUBLISHED)
         val registration = registrationAccessValidator.requireForEvent(registrationId, eventId)
 
         val organizerAction = when (action) {
@@ -43,36 +43,42 @@ class OrganizerRegistrationService(
             else -> throw IllegalArgumentException("Invalid organizer action")
         }
 
-        return handleOrganizerAction(registration, organizerAction)
+        return handleOrganizerAction(registration, organizerAction, event.maxAttendees)
     }
 
     @Transactional
-    fun handleOrganizerAction(registration: EventRegistration, action: OrganizerAction): EventRegistration {
-        val event = eventRepository.findById(registration.eventId)
-            .orElseThrow { IllegalArgumentException("Event not found with id: ${registration.eventId}") }
-
+    fun handleOrganizerAction(registration: EventRegistration, action: OrganizerAction, maxAttendees: Int?): EventRegistration {
         val newStatus = when (action) {
             OrganizerAction.APPROVE -> when (registration.status) {
-                RegistrationStatus.PENDING -> resolveApprovedStatus(registration, event.maxAttendees)
+                RegistrationStatus.PENDING -> resolveApprovedStatus(registration, maxAttendees)
                 else -> throw IllegalStateException("Cannot approve from ${registration.status}")
             }
 
             OrganizerAction.REJECT -> when (registration.status) {
-                RegistrationStatus.PENDING, RegistrationStatus.REGISTERED -> RegistrationStatus.REJECTED
+                RegistrationStatus.PENDING, RegistrationStatus.REGISTERED, RegistrationStatus.WAITLISTED -> RegistrationStatus.REJECTED
                 else -> throw IllegalStateException("Cannot reject from ${registration.status}")
             }
         }
 
+        registration.status.requireTransitionTo(newStatus)
+        val now = LocalDateTime.now()
+
         val savedRegistration = eventRegistrationRepository.save(
             registration.copy(
                 status = newStatus,
-                updatedAt = LocalDateTime.now()
+                updatedAt = now,
+                waitlistedAt = RegistrationWaitlistTimestampResolver.resolve(
+                    registration.status,
+                    registration.waitlistedAt,
+                    newStatus,
+                    now
+                )
             )
         )
         eventRegistrationRepository.flush()
 
         if (action == OrganizerAction.REJECT) {
-            event.maxAttendees?.let { maxAttendees ->
+            maxAttendees?.let { maxAttendees ->
                 registrationRecalculateService.recalculate(registration.eventId, maxAttendees)
             }
         }

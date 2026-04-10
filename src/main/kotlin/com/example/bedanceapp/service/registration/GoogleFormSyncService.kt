@@ -107,21 +107,30 @@ class GoogleFormSyncService(
             val registrations = eventRegistrationRepository.findByEventId(eventId)
 
             if (existingRegistration == null) {
+                val now = LocalDateTime.now()
+                val assignedStatus = registrationStatusService.assignRegistrationStatus(
+                    registrations,
+                    RegistrationStatus.REGISTERED,
+                    eventId,
+                    null,
+                    maxAttendees
+                )
                 val newRegistration = EventRegistration(
                     eventId = eventId,
                     userId = userId,
-                    status = registrationStatusService.assignRegistrationStatus(
-                        registrations,
-                        RegistrationStatus.REGISTERED,
-                        eventId,
-                        null,
-                        maxAttendees
-                    ),
+                    status = assignedStatus,
                     roleId = null,
                     email = registrationRow.user.email,
                     isAnonymous = true,
                     responseId = responseId,
-                    formResponses = googleFormMapper.writeRowStructure(registrationRow)
+                    formResponses = googleFormMapper.writeRowStructure(registrationRow),
+                    updatedAt = now,
+                    waitlistedAt = RegistrationWaitlistTimestampResolver.resolve(
+                        previousStatus = null,
+                        previousWaitlistedAt = null,
+                        newStatus = assignedStatus,
+                        now = now
+                    )
                 )
 
                 eventRegistrationRepository.save(newRegistration)

@@ -1,3 +1,8 @@
+-- Deprecated combined script.
+-- Prefer running:
+-- 1) src/main/resources/createDb.sql
+-- 2) src/main/resources/insertData.sql
+
 -- Remove conflicting tables
 DROP TABLE IF EXISTS dance_styles CASCADE;
 DROP TABLE IF EXISTS media CASCADE;
@@ -180,7 +185,8 @@ CREATE TABLE registrations (
                                response_id varchar(255),
                                form_responses JSONB,
                                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                               updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                               updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                               waitlisted_at TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE registrations ADD CONSTRAINT pk_registrations PRIMARY KEY (id);
 ALTER TABLE registrations ADD CONSTRAINT uc_registrations_user_event UNIQUE (event_id, user_id);

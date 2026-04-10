@@ -62,7 +62,10 @@ data class EventRegistration(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at")
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    @Column(name = "waitlisted_at")
+    val waitlistedAt: LocalDateTime? = null
     )
 
 
