@@ -145,7 +145,7 @@ class RegistrationController(
  */
 data class RegisterEventRequest(
     val status: RegistrationStatus,  // interested, registered, waitlisted
-    val roleId: UUID? = null,  // Leader, Follower, Both
+    val roleId: UUID? = null,  // Leader, Follower
     val email: String? = null,  // Optional - will use user's email from profile if not provided
     val isAnonymous: Boolean = false,
 )

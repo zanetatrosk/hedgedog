@@ -4,6 +4,7 @@ import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationStats
 import com.example.bedanceapp.model.EventRegistrationDto
+import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.service.mapping.EventRegistrationMapper
 import org.springframework.stereotype.Service
@@ -17,7 +18,8 @@ import java.util.UUID
 @Service
 class EventRegistrationQueryService(
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val eventRegistrationMapper: EventRegistrationMapper
+    private val eventRegistrationMapper: EventRegistrationMapper,
+    private val dancerRoleRepository: DancerRoleRepository
 ) {
     @Transactional(readOnly = true)
     fun getRegistrationCountByEventId(eventId: UUID?, state: RegistrationStatus): Int {
@@ -45,8 +47,7 @@ class EventRegistrationQueryService(
         return EventRegistrationStats(
             total = regs.size,
             leaders = counts["Leader"] ?: 0,
-            followers = counts["Follower"] ?: 0,
-            both = counts["Both"] ?: 0
+            followers = counts["Follower"] ?: 0
         )
     }
 
@@ -55,5 +56,23 @@ class EventRegistrationQueryService(
         val registrations = eventRegistrationRepository.findByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED)
         return eventRegistrationMapper.toDtoList(registrations)
     }
+
+    fun resolveCoupleRoleIds(): StatusCoupleRoleIds {
+        val rolesByName = dancerRoleRepository.findAll()
+            .filter { it.id != null }
+            .associateBy { it.name.lowercase() }
+
+        val leaderId = rolesByName["leader"]?.id
+            ?: throw IllegalStateException("Leader role is not configured")
+        val followerId = rolesByName["follower"]?.id
+            ?: throw IllegalStateException("Follower role is not configured")
+
+        return StatusCoupleRoleIds(leaderId, followerId)
+    }
 }
+
+data class StatusCoupleRoleIds(
+    val leaderId: UUID,
+    val followerId: UUID
+)
 

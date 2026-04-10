@@ -3,7 +3,6 @@ package com.example.bedanceapp.service.registration
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.RegistrationMode
-import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import org.springframework.stereotype.Service
@@ -19,100 +18,66 @@ import java.util.UUID
 @Service
 class RegistrationRecalculateService(
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val dancerRoleRepository: DancerRoleRepository,
+    private val eventRegistrationQueryService: EventRegistrationQueryService,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
 ) {
 
     @Transactional
     fun recalculate(eventId: UUID, maxAttendees: Int) {
         val settings = eventRegistrationSettingsRepository.findByEventId(eventId)
-        val allRegistrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)
-        val activeRegistrations = allRegistrations.filter {
-            it.status == RegistrationStatus.REGISTERED
-        }
-        val waitlisted = allRegistrations
-            .filter { it.status == RegistrationStatus.WAITLISTED }
-            .sortedBy { it.createdAt }
+        val registrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)
+
+        val active = registrations.filter { it.status == RegistrationStatus.REGISTERED }
+        val waitlisted = registrations.filter { it.status == RegistrationStatus.WAITLISTED }
+            .sortedBy { it.waitlistedAt ?: it.createdAt }
 
         if (waitlisted.isEmpty()) return
 
-        val targetStatus = RegistrationStatus.REGISTERED
-
-        val activeCount = allRegistrations.count {
-            it.status == RegistrationStatus.REGISTERED
-        }
-
         val updates = if (settings?.registrationMode == RegistrationMode.COUPLE) {
-            calculateCoupleModePromotions(activeRegistrations, waitlisted, maxAttendees, targetStatus)
+            calculateCoupleMode(active, waitlisted, maxAttendees)
         } else {
-            calculateOpenModePromotions(waitlisted, activeCount, maxAttendees, targetStatus)
+            calculateOpenMode(active.size, waitlisted, maxAttendees)
         }
 
-        if (updates.isNotEmpty()) {
-            eventRegistrationRepository.saveAll(updates)
-        }
+        if (updates.isNotEmpty()) eventRegistrationRepository.saveAll(updates)
     }
 
-    private fun calculateOpenModePromotions(
+    private fun calculateOpenMode(activeCount: Int, waitlisted: List<EventRegistration>, max: Int) =
+        waitlisted.take((max - activeCount).coerceAtLeast(0)).map { it.promote() }
+
+    private fun calculateCoupleMode(
+        active: List<EventRegistration>,
         waitlisted: List<EventRegistration>,
-        activeCount: Int,
-        maxAttendees: Int,
-        targetStatus: RegistrationStatus
+        maxAttendees: Int
     ): List<EventRegistration> {
-        val spotsAvailable = maxAttendees - activeCount
-        if (spotsAvailable <= 0) return emptyList()
-
-        return waitlisted.take(spotsAvailable).map { it.copy(status = targetStatus, updatedAt = LocalDateTime.now()) }
-    }
-
-    private fun calculateCoupleModePromotions(
-        activeRegistrations: List<EventRegistration>,
-        waitlisted: List<EventRegistration>,
-        maxAttendees: Int,
-        targetStatus: RegistrationStatus
-    ): List<EventRegistration> {
-        if (activeRegistrations.size >= maxAttendees) return emptyList()
-
+        val roleIds = eventRegistrationQueryService.resolveCoupleRoleIds()
         val maxPerRole = maxAttendees / 2
-        val roles = dancerRoleRepository.findAll()
-        val roleIds = roles.map { it.id }
-        val waitlistedByRole = waitlisted.groupBy { it.roleId }.mapValues { it.value.toMutableList() }
-        val updates = mutableListOf<EventRegistration>()
 
-        var promoted = true
-        while (promoted) {
-            promoted = false
+        // Track remaining capacity for each role
+        val remainingRoleCapacity = mutableMapOf(
+            roleIds.leaderId to (maxPerRole - active.count { it.roleId == roleIds.leaderId }),
+            roleIds.followerId to (maxPerRole - active.count { it.roleId == roleIds.followerId })
+        )
 
-            if (activeRegistrations.size + updates.size >= maxAttendees) {
-                break
-            }
+        return waitlisted.filter { registration ->
+            val capacity = remainingRoleCapacity[registration.roleId] ?: 0
+            if (capacity > 0) {
+                remainingRoleCapacity[registration.roleId!!] = capacity - 1
+                true
+            } else false
+        }.map { it.promote() }
+    }
 
-            val roleCounts = roleIds.associateWith { roleId ->
-                activeRegistrations.count { it.roleId == roleId } + updates.count { it.roleId == roleId }
-            }
-
-            for (roleId in roleIds.sortedBy { roleCounts[it] ?: 0 }) {
-                val currentCount = roleCounts[roleId] ?: 0
-                if (currentCount < maxPerRole && activeRegistrations.size + updates.size < maxAttendees) {
-                    val nextWaitlisted = waitlistedByRole[roleId]
-                        ?.firstOrNull { it.status == RegistrationStatus.WAITLISTED }
-
-                    if (nextWaitlisted != null) {
-                        val updatedRegistration = nextWaitlisted.copy(
-                            status = targetStatus,
-                            updatedAt = LocalDateTime.now()
-                        )
-                        updates.add(updatedRegistration)
-                        waitlistedByRole[roleId]?.remove(nextWaitlisted)
-                        promoted = true
-                        break
-                    }
-                }
-            }
-        }
-
-        return updates
+    // Helper to handle the transition logic and object copying
+    private fun EventRegistration.promote(): EventRegistration {
+        this.status.requireTransitionTo(RegistrationStatus.REGISTERED)
+        return this.copy(
+            status = RegistrationStatus.REGISTERED,
+            updatedAt = LocalDateTime.now(),
+            waitlistedAt = null
+        )
     }
 }
+
 
 

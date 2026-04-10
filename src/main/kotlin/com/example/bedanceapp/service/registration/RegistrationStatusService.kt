@@ -10,7 +10,8 @@ import java.util.UUID
 
 @Service
 class RegistrationStatusService(
-    private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
+    private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,
+    private val eventRegistrationQueryService: EventRegistrationQueryService,
 ) {
     fun resolveApprovedStatus(
         registrations: List<EventRegistration>,
@@ -19,17 +20,28 @@ class RegistrationStatusService(
         maxAttendees: Int?
     ): RegistrationStatus {
         if (maxAttendees != null) {
-            val activeStatuses = listOf(RegistrationStatus.REGISTERED)
-            val activeRegistrations = registrations.filter { it.status in activeStatuses }
+            val activeRegistrations = registrations.filter { it.status == RegistrationStatus.REGISTERED }
 
-            if (settings?.registrationMode == RegistrationMode.COUPLE) {
-                val activeWithinRole = activeRegistrations.filter { it.roleId == roleId }
-                if (activeWithinRole.size >= maxAttendees / 2) {
-                    return RegistrationStatus.WAITLISTED
-                }
-            }
             if (activeRegistrations.size >= maxAttendees) {
                 return RegistrationStatus.WAITLISTED
+            }
+
+            if (settings?.registrationMode == RegistrationMode.COUPLE) {
+                val roleIds = eventRegistrationQueryService.resolveCoupleRoleIds()
+                val maxPerRole = maxAttendees / 2
+                if (maxPerRole <= 0) {
+                    return RegistrationStatus.WAITLISTED
+                }
+
+                val activeWithinRole = when (roleId) {
+                    roleIds.leaderId -> activeRegistrations.count { it.roleId == roleIds.leaderId }
+                    roleIds.followerId -> activeRegistrations.count { it.roleId == roleIds.followerId }
+                    else -> return RegistrationStatus.WAITLISTED
+                }
+
+                if (activeWithinRole >= maxPerRole) {
+                    return RegistrationStatus.WAITLISTED
+                }
             }
         }
 
@@ -54,5 +66,7 @@ class RegistrationStatusService(
         
         return resolveApprovedStatus(registrations, settings, roleId, maxAttendees)
     }
+
+    
 }
 

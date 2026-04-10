@@ -26,9 +26,6 @@ class AttendeeRegistrationService(
     private val registrationAccessValidator: RegistrationAccessValidator
 ) {
 
-    companion object {
-        private const val DEFAULT_ROLE_NAME = "Both"
-    }
 
     @Transactional
     fun deleteRegistrationByRegistrationId(eventId: UUID, userId: UUID, registrationId: UUID) {

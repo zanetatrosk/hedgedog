@@ -100,8 +100,7 @@ class EventMapper(
                 going = RegistrationStats(
                     total = regCounts.total,
                     leaders = regCounts.leaders,
-                    followers = regCounts.followers,
-                    both = regCounts.both
+                    followers = regCounts.followers
                 ),
                 interested = interestedCount
             )
@@ -124,7 +123,7 @@ class EventMapper(
             time = event.eventTime.toString(),
             location = event.location.toLocationDto(),
             attendeeStats = AttendeeStats(
-                going = RegistrationStats(stats.total, stats.leaders, stats.followers, stats.both),
+                going = RegistrationStats(stats.total, stats.leaders, stats.followers),
                 interested = interestedCount
             )
         )

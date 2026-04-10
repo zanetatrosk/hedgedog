@@ -62,7 +62,7 @@ CREATE TABLE user_profiles (
 );
 ALTER TABLE user_profiles ADD CONSTRAINT pk_user_profiles PRIMARY KEY (user_id);
 
--- Role table (Leader/Follower/Both)
+-- Role table (Leader/Follower)
 CREATE TABLE dancer_roles (
                              id UUID NOT NULL DEFAULT gen_random_uuid(),
                              name VARCHAR(50) NOT NULL
@@ -338,11 +338,10 @@ INSERT INTO event_types (name) VALUES
                                   ('Congress'),
                                   ('Bootcamp');
 
--- Insert predefined roles (Leader/Follower/Both)
+-- Insert predefined roles (Leader/Follower)
 INSERT INTO dancer_roles (name) VALUES
                                    ('Leader'),
-                                   ('Follower'),
-                                   ('Both');
+                                   ('Follower');
 
 -- =====================================================
 -- SAMPLE DATA GENERATION

@@ -50,8 +50,7 @@ data class AttendeeStats(
 data class RegistrationStats(
     val total: Int,
     val leaders: Int,
-    val followers: Int,
-    val both: Int
+    val followers: Int
 )
 
 data class CodebookItem (

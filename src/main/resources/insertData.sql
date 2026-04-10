@@ -42,8 +42,7 @@ INSERT INTO event_types (name) VALUES
 
 INSERT INTO dancer_roles (name) VALUES
     ('Leader'),
-    ('Follower'),
-    ('Both');
+    ('Follower');
 
 -- =====================================================
 -- SAMPLE DATA FOR REGISTRATION / WAITLIST TESTING
@@ -53,7 +52,6 @@ DECLARE
     -- Lookup IDs
     v_role_leader UUID;
     v_role_follower UUID;
-    v_role_both UUID;
     v_level_beginner UUID;
     v_level_inter UUID;
     v_level_advanced UUID;
@@ -87,7 +85,6 @@ BEGIN
     -- lookups
     SELECT id INTO v_role_leader FROM dancer_roles WHERE name = 'Leader' LIMIT 1;
     SELECT id INTO v_role_follower FROM dancer_roles WHERE name = 'Follower' LIMIT 1;
-    SELECT id INTO v_role_both FROM dancer_roles WHERE name = 'Both' LIMIT 1;
     SELECT id INTO v_level_beginner FROM skill_levels WHERE name = 'Beginner' LIMIT 1;
     SELECT id INTO v_level_inter FROM skill_levels WHERE name = 'Intermediate' LIMIT 1;
     SELECT id INTO v_level_advanced FROM skill_levels WHERE name = 'Advanced' LIMIT 1;
@@ -108,15 +105,15 @@ BEGIN
     INSERT INTO users (email, provider, provider_id) VALUES ('extra2@example.com', 'google', 'google_extra_2') RETURNING id INTO v_user_extra_2;
 
     INSERT INTO user_profiles (user_id, first_name, last_name, role_id, general_skill_level_id, city, country) VALUES
-        (v_user_org, 'Olivia', 'Organizer', v_role_both, v_level_advanced, 'Prague', 'Czech Republic'),
+        (v_user_org, 'Olivia', 'Organizer', v_role_leader, v_level_advanced, 'Prague', 'Czech Republic'),
         (v_user_lead_1, 'Liam', 'LeaderOne', v_role_leader, v_level_inter, 'Prague', 'Czech Republic'),
         (v_user_follow_1, 'Fiona', 'FollowerOne', v_role_follower, v_level_inter, 'Prague', 'Czech Republic'),
         (v_user_lead_2, 'Leo', 'LeaderTwo', v_role_leader, v_level_beginner, 'Brno', 'Czech Republic'),
         (v_user_follow_2, 'Farah', 'FollowerTwo', v_role_follower, v_level_beginner, 'Brno', 'Czech Republic'),
         (v_user_lead_3, 'Lucas', 'LeaderThree', v_role_leader, v_level_advanced, 'Prague', 'Czech Republic'),
         (v_user_follow_3, 'Frida', 'FollowerThree', v_role_follower, v_level_advanced, 'Prague', 'Czech Republic'),
-        (v_user_extra_1, 'Ema', 'ExtraOne', v_role_both, v_level_inter, 'Ostrava', 'Czech Republic'),
-        (v_user_extra_2, 'Erik', 'ExtraTwo', v_role_both, v_level_inter, 'Ostrava', 'Czech Republic');
+        (v_user_extra_1, 'Ema', 'ExtraOne', v_role_leader, v_level_inter, 'Ostrava', 'Czech Republic'),
+        (v_user_extra_2, 'Erik', 'ExtraTwo', v_role_follower, v_level_inter, 'Ostrava', 'Czech Republic');
 
     -- locations
     INSERT INTO locations (name, street, house_number, city, country) VALUES
@@ -146,8 +143,8 @@ BEGIN
 
     INSERT INTO registrations (event_id, user_id, role_id, status, email, waitlisted_at)
     VALUES
-        (v_event_open_limited, v_user_extra_1, v_role_both, 'WAITLISTED', 'extra1@example.com', CURRENT_TIMESTAMP - INTERVAL '45 minutes'),
-        (v_event_open_limited, v_user_extra_2, v_role_both, 'WAITLISTED', 'extra2@example.com', CURRENT_TIMESTAMP - INTERVAL '10 minutes');
+        (v_event_open_limited, v_user_extra_1, v_role_leader, 'WAITLISTED', 'extra1@example.com', CURRENT_TIMESTAMP - INTERVAL '45 minutes'),
+        (v_event_open_limited, v_user_extra_2, v_role_follower, 'WAITLISTED', 'extra2@example.com', CURRENT_TIMESTAMP - INTERVAL '10 minutes');
 
     -- event 2: couple mode with limited capacity + role-balanced waitlist queue
     INSERT INTO events (
@@ -195,8 +192,8 @@ BEGIN
 
     INSERT INTO registrations (event_id, user_id, role_id, status, email)
     VALUES
-        (v_event_approval, v_user_extra_1, v_role_both, 'PENDING', 'extra1@example.com'),
-        (v_event_approval, v_user_extra_2, v_role_both, 'PENDING', 'extra2@example.com');
+        (v_event_approval, v_user_extra_1, v_role_leader, 'PENDING', 'extra1@example.com'),
+        (v_event_approval, v_user_extra_2, v_role_follower, 'PENDING', 'extra2@example.com');
 
     -- recurring sample event series
     INSERT INTO event_parents (name) VALUES ('Weekly Salsa Foundations') RETURNING id INTO v_parent_series;
