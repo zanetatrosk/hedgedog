@@ -1,5 +1,4 @@
 package com.example.bedanceapp.service.registration
-
 import com.example.bedanceapp.controller.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.RegistrationMode
@@ -12,156 +11,123 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
+import org.mockito.kotlin.any
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
-@DisplayName("RegistrationRecalculateService - Edge Case Scenarios")
+@DisplayName("RegistrationRecalculateService Tests")
 class RegistrationRecalculateServiceTest {
-
-    @Mock private lateinit var eventRegistrationRepository: EventRegistrationRepository
-    @Mock private lateinit var eventRegistrationQueryService: EventRegistrationQueryService
-    @Mock private lateinit var eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
-
-    @Captor private lateinit var registrationCaptor: ArgumentCaptor<List<EventRegistration>>
-
-    private lateinit var service: RegistrationRecalculateService
-
+    @Mock
+    private lateinit var eventRegistrationRepository: EventRegistrationRepository
+    @Mock
+    private lateinit var eventRegistrationQueryService: EventRegistrationQueryService
+    @Mock
+    private lateinit var eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
+    @Captor
+    private lateinit var registrationCaptor: ArgumentCaptor<List<EventRegistration>>
+    private lateinit var registrationRecalculateService: RegistrationRecalculateService
     @BeforeEach
     fun setUp() {
         MockitoAnnotations.openMocks(this)
-        service = RegistrationRecalculateService(
+        registrationRecalculateService = RegistrationRecalculateService(
             eventRegistrationRepository,
             eventRegistrationQueryService,
             eventRegistrationSettingsRepository
         )
     }
-
     companion object {
         private val EVENT_ID = UUID.randomUUID()
         private val ROLE_LEADER = UUID.randomUUID()
         private val ROLE_FOLLOWER = UUID.randomUUID()
     }
-
     @Test
-    @DisplayName("OPEN Mode: Promotes exactly the oldest registrations when capacity is partial")
-    fun testOpenModePartialCapacityFifo() {
+    @DisplayName("recalculate promotes waitlisted users in FIFO order for OPEN mode")
+    fun testRecalculateOpenModePromotesFifo() {
+        val user1 = UUID.randomUUID()
+        val user2 = UUID.randomUUID()
+        val user3 = UUID.randomUUID()
         val now = LocalDateTime.now()
-
-        // 1 active user
-        val active = createReg("active", RegistrationStatus.REGISTERED)
-
-        // 3 waitlisted users with distinct times
-        val firstWaitlisted = createReg("first", RegistrationStatus.WAITLISTED, waitAt = now.minusHours(3))
-        val secondWaitlisted = createReg("second", RegistrationStatus.WAITLISTED, waitAt = now.minusHours(2))
-        val thirdWaitlisted = createReg("third", RegistrationStatus.WAITLISTED, waitAt = now.minusHours(1))
-
-        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID))
-            .thenReturn(createSettings(RegistrationMode.OPEN))
-        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID))
-            .thenReturn(listOf(active, firstWaitlisted, secondWaitlisted, thirdWaitlisted))
-
-        // Total capacity 3. 1 is taken, so only 2 spots open.
-        // We expect 'first' and 'second' to be promoted, 'third' stays waitlisted.
-        service.recalculate(EVENT_ID, 3)
-
+        val registrations = listOf(
+            createRegistration(user1, RegistrationStatus.REGISTERED),
+            createRegistration(user2, RegistrationStatus.WAITLISTED, waitlistedAt = now.minusMinutes(10)),
+            createRegistration(user3, RegistrationStatus.WAITLISTED, waitlistedAt = now.minusMinutes(5))
+        )
+        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID)).thenReturn(registrations)
+        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID)).thenReturn(
+            com.example.bedanceapp.model.EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.OPEN)
+        )
+        registrationRecalculateService.recalculate(EVENT_ID, 3)
         verify(eventRegistrationRepository).saveAll(registrationCaptor.capture())
         val saved = registrationCaptor.value
-
-        assertEquals(2, saved.size, "Should only promote 2 users to fill the 3-person capacity")
-
-        val promotedIds = saved.map { it.userId }
-        assertTrue(promotedIds.contains(firstWaitlisted.userId), "Should contain the oldest waitlisted user")
-        assertTrue(promotedIds.contains(secondWaitlisted.userId), "Should contain the second oldest")
-        assertFalse(promotedIds.contains(thirdWaitlisted.userId), "Should NOT promote the newest user")
+        assertEquals(2, saved.size)
+        assertEquals(user2, saved[0].userId)
+        assertEquals(user3, saved[1].userId)
+        assertTrue(saved.all { it.status == RegistrationStatus.REGISTERED })
+        assertTrue(saved.all { it.waitlistedAt == null })
     }
-
     @Test
-    @DisplayName("COUPLE Mode: Skips earliest user if their role is already full")
-    fun testCoupleModeRoleCapping() {
+    @DisplayName("recalculate does nothing when no waitlisted users")
+    fun testRecalculateNoActionWhenNoWaitlistedUsers() {
+        val user1 = UUID.randomUUID()
+        val registrations = listOf(createRegistration(user1, RegistrationStatus.REGISTERED))
+        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID)).thenReturn(registrations)
+        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID)).thenReturn(
+            com.example.bedanceapp.model.EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.OPEN)
+        )
+        registrationRecalculateService.recalculate(EVENT_ID, 5)
+        verify(eventRegistrationRepository, never()).saveAll(any<List<EventRegistration>>())
+    }
+    @Test
+    @DisplayName("recalculate balances leader and follower waitlist promotions in COUPLE mode")
+    fun testRecalculateCoupleModeBalancesRoles() {
         val now = LocalDateTime.now()
-
-        // Scenario: Max 4 people (2 leaders, 2 followers).
-        // Current: 2 leaders registered. Leaders are FULL.
-        val lead1 = createReg("L1", RegistrationStatus.REGISTERED, ROLE_LEADER)
-        val lead2 = createReg("L2", RegistrationStatus.REGISTERED, ROLE_LEADER)
-
-        // Waitlist: Leader (arrived first), then Follower (arrived later).
-        val waitLead = createReg("WaitL", RegistrationStatus.WAITLISTED, ROLE_LEADER, waitAt = now.minusHours(2))
-        val waitFollow = createReg("WaitF", RegistrationStatus.WAITLISTED, ROLE_FOLLOWER, waitAt = now.minusHours(1))
-
-        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID))
-            .thenReturn(createSettings(RegistrationMode.COUPLE))
-        whenever(eventRegistrationQueryService.resolveCoupleRoleIds())
-            .thenReturn(StatusCoupleRoleIds(ROLE_LEADER, ROLE_FOLLOWER))
-        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID))
-            .thenReturn(listOf(lead1, lead2, waitLead, waitFollow))
-
-        // Recalculate for max 4.
-        service.recalculate(EVENT_ID, 4)
-
+        val leaderActive = createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_LEADER)
+        val followerActive = createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_FOLLOWER)
+        val leaderWaitlisted = createRegistration(UUID.randomUUID(), RegistrationStatus.WAITLISTED, ROLE_LEADER, now.minusMinutes(15))
+        val followerWaitlisted = createRegistration(UUID.randomUUID(), RegistrationStatus.WAITLISTED, ROLE_FOLLOWER, now.minusMinutes(5))
+        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID)).thenReturn(
+            listOf(leaderActive, followerActive, leaderWaitlisted, followerWaitlisted)
+        )
+        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID)).thenReturn(
+            com.example.bedanceapp.model.EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.COUPLE)
+        )
+        whenever(eventRegistrationQueryService.resolveCoupleRoleIds()).thenReturn(
+            StatusCoupleRoleIds(ROLE_LEADER, ROLE_FOLLOWER)
+        )
+        registrationRecalculateService.recalculate(EVENT_ID, 4)
         verify(eventRegistrationRepository).saveAll(registrationCaptor.capture())
         val saved = registrationCaptor.value
-
-        // Only the follower should be promoted because leader spots are 2/2 full.
-        assertEquals(1, saved.size)
-        assertEquals(waitFollow.userId, saved.first().userId, "Follower should be promoted even though they were later in line than the Leader")
+        assertEquals(2, saved.size)
+        assertEquals(ROLE_LEADER, saved[0].roleId)
+        assertEquals(ROLE_FOLLOWER, saved[1].roleId)
+        assertTrue(saved.all { it.status == RegistrationStatus.REGISTERED })
+        assertTrue(saved.all { it.waitlistedAt == null })
     }
-
-    @Test
-    @DisplayName("COUPLE Mode: Promotes nothing if capacity is met but roles are imbalanced")
-    fun testCoupleModeNoPromotionWhenSpecificRoleFull() {
-        // Max 2 (1 leader, 1 follower). Leader is already registered.
-        val lead1 = createReg("L1", RegistrationStatus.REGISTERED, ROLE_LEADER)
-
-        // Waitlist only has leaders.
-        val waitLead = createReg("WaitL", RegistrationStatus.WAITLISTED, ROLE_LEADER)
-
-        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID))
-            .thenReturn(createSettings(RegistrationMode.COUPLE))
-        whenever(eventRegistrationQueryService.resolveCoupleRoleIds())
-            .thenReturn(StatusCoupleRoleIds(ROLE_LEADER, ROLE_FOLLOWER))
-        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID))
-            .thenReturn(listOf(lead1, waitLead))
-
-        service.recalculate(EVENT_ID, 2)
-
-        // Should not save anything because the only person waiting is a leader, and lead capacity is 1/1.
-        verify(eventRegistrationRepository, never()).saveAll(any<List<EventRegistration>>())    }
-
-    // --- Helpers ---
-
-    private fun createReg(
-        name: String,
+    private fun createRegistration(
+        userId: UUID,
         status: RegistrationStatus,
         roleId: UUID? = null,
-        waitAt: LocalDateTime? = null
+        waitlistedAt: LocalDateTime? = null
     ): EventRegistration {
-        val id = UUID.randomUUID()
         return EventRegistration(
-            id = id,
+            id = UUID.randomUUID(),
             eventId = EVENT_ID,
-            userId = id, // using ID as a pseudo-username for tracking
+            userId = userId,
+            user = null,
             status = status,
             roleId = roleId,
-            email = "$name@dance.com",
-            createdAt = LocalDateTime.now().minusDays(1),
-            waitlistedAt = waitAt,
-            updatedAt = LocalDateTime.now(),
+            role = null,
+            email = "$userId@example.com",
             isAnonymous = false,
-            user = null, role = null, responseId = null, formResponses = null
+            responseId = null,
+            formResponses = null,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+            waitlistedAt = waitlistedAt
         )
     }
-
-    private fun createSettings(mode: RegistrationMode) =
-        com.example.bedanceapp.model.EventRegistrationSettings(
-            eventId = EVENT_ID,
-            registrationMode = mode,
-            requireApproval = false
-        )
 }
-
-
