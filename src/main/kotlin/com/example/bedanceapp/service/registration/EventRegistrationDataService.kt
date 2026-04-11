@@ -5,6 +5,7 @@ import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.service.event.CreateEventService
+import com.example.bedanceapp.service.event.EventService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -16,7 +17,7 @@ import java.util.UUID
 @Service
 class EventRegistrationDataService(
     private val eventRepository: EventRepository,
-    private val createEventService: CreateEventService,
+    private val eventService: EventService,
     private val registrationStrategyFactory: RegistrationStrategyFactory,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
 ) {
@@ -41,7 +42,7 @@ class EventRegistrationDataService(
             eventId = event.id!!,
             eventName = event.eventName,
             date = event.eventDate.toString(),
-            recurringDates = createEventService.getUpcomingDates(event.parentEventId),
+            recurringDates = eventService.getUpcomingDates(event.parentEventId),
             registrationData = registrationData,
             registrationMode = registrationMode
         )

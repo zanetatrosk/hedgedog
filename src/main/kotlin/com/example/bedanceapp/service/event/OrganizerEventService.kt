@@ -33,10 +33,12 @@ class OrganizerEventService(
 
     @Transactional
     fun createEventByOccurrence(request: CreateUpdateEventDto, organizerId: UUID): List<Event> {
-        return createEventService.createSingleEventOrRecurringEvents(
+        val events =  createEventService.createSingleEventOrRecurringEvents(
             request = request,
             organizerId = organizerId,
         )
+        eventRepository.saveAll(events)
+        return events;
     }
 
     @Transactional

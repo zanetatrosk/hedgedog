@@ -16,7 +16,6 @@ import java.util.UUID
 class CreateEventService(
     private val recurringEventGenerator: RecurringEventGenerator,
     private val eventParentRepository: EventParentRepository,
-    private val eventRepository: EventRepository,
     private val eventAssembler: EventAssembler
 ) {
 
@@ -53,9 +52,9 @@ class CreateEventService(
         val parent = eventParentRepository.save(EventParent(name = basicInfo.eventName))
 
         // 5. Create individual events using functional map
-        return eventRepository.saveAll(dates.map { date ->
+        return dates.map { date ->
             eventAssembler.buildEventFromRequest(request, organizerId, date, parent.id)
-        })
+        }
     }
 
     private fun validateRecurrence(info: BasicInfoRequest) {
@@ -65,16 +64,6 @@ class CreateEventService(
         require(!info.date.isAfter(info.recurrenceEndDate)) {
             "Start date (${info.date}) must be before or equal to recurrence end date (${info.recurrenceEndDate})"
         }
-    }
-
-
-    @Transactional(readOnly = true)
-    fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {
-        return parentEventId?.let { id ->
-            eventRepository.findByParentEventId(id)
-                .map { RecurringDateInfo(date = it.eventDate.toString(), id = it.id.toString()) }
-                .sortedBy { it.date }
-        } ?: emptyList()
     }
 }
 

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.math.BigDecimal
@@ -65,8 +66,8 @@ class OrganizerRegistrationServiceTest {
         whenever(registrationAccessValidator.requireForEvent(registrationId, eventId)).thenReturn(registration)
         whenever(registrationStatusService.resolveApprovedStatus(
             registrations = any(),
-            settings = any(),
-            roleId = any(),
+            settings = anyOrNull(),
+            roleId = anyOrNull(),
             maxAttendees = any()
         )).thenReturn(RegistrationStatus.REGISTERED)
         val updated = organizerRegistrationService.updateRegistrationStatus(

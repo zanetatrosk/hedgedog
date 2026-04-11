@@ -46,7 +46,16 @@ class EventService(
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
 
         val parentEventId = event.parentEventId
-        val recurringDates = createEventService.getUpcomingDates(parentEventId)
+        val recurringDates = getUpcomingDates(parentEventId)
         return eventMapper.toDetailData(event, userId, recurringDates)
+    }
+
+    @Transactional(readOnly = true)
+    fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {
+        return parentEventId?.let { id ->
+            eventRepository.findByParentEventId(id)
+                .map { RecurringDateInfo(date = it.eventDate.toString(), id = it.id.toString()) }
+                .sortedBy { it.date }
+        } ?: emptyList()
     }
 }
