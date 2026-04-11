@@ -112,7 +112,11 @@ class EventServiceTest {
         assertEquals("Event not found with id: $eventId", exception.message)
     }
 
-    private fun createEvent(id: UUID, parentEventId: UUID? = null): Event {
+    private fun createEvent(
+        id: UUID,
+        parentEventId: UUID? = null,
+        eventDate: LocalDate = LocalDate.of(2026, 5, 1)
+    ): Event {
         return Event(
             id = id,
             parentEventId = parentEventId,
@@ -120,7 +124,7 @@ class EventServiceTest {
             organizer = User(id = UUID.randomUUID(), email = "org@example.com", provider = "google", providerId = "p1"),
             eventName = "Event",
             description = "desc",
-            eventDate = LocalDate.of(2026, 5, 1),
+            eventDate = eventDate,
             endDate = null,
             eventTime = LocalTime.NOON,
             locationId = null,
