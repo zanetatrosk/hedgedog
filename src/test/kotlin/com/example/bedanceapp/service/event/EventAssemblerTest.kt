@@ -30,6 +30,7 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Optional
@@ -76,7 +77,8 @@ class EventAssemblerTest {
             skillLevels = listOf(skillLevelId),
             eventTypes = listOf(eventTypeId),
             mediaIds = listOf(mediaId),
-            currency = "EUR"
+            currency = "EUR",
+            price = BigDecimal(100)
         )
 
         val organizer = User(id = organizerId, email = "org@example.com", provider = "google", providerId = "p1")
@@ -118,7 +120,7 @@ class EventAssemblerTest {
     @Test
     fun `buildEventFromRequest throws when currency does not exist`() {
         val organizerId = UUID.randomUUID()
-        val request = createRequest(currency = "ZZZ")
+        val request = createRequest(currency = "ZZZ", price = BigDecimal(50))
         whenever(currencyRepository.findByCode("ZZZ")).thenReturn(Optional.empty())
 
         val exception = assertThrows<IllegalArgumentException> {
@@ -162,7 +164,8 @@ class EventAssemblerTest {
         skillLevels: List<UUID> = emptyList(),
         eventTypes: List<UUID> = emptyList(),
         mediaIds: List<UUID> = emptyList(),
-        currency: String? = null
+        currency: String? = null,
+        price: BigDecimal? = null,
     ): CreateUpdateEventDto {
         return CreateUpdateEventDto(
             basicInfo = BasicInfoRequest(
@@ -183,7 +186,7 @@ class EventAssemblerTest {
                 isRecurring = false,
                 recurrenceType = null,
                 recurrenceEndDate = null,
-                price = null,
+                price = price,
                 currency = currency
             ),
             additionalDetails = AdditionalDetailsRequest(

@@ -71,6 +71,10 @@ class OrganizerEventService(
             "Form ID must be provided when using GOOGLE_FORM registration mode."
         }
 
+        require(registrationMode != RegistrationMode.COUPLE || event.maxAttendees?.rem(2) == 0) {
+            "You cannot have odd number of capacity for couple event, please change capacity to even number"
+        }
+
         val registrationSettings = EventRegistrationSettings(
             eventId = eventId,
             registrationMode = registrationMode,
@@ -114,23 +118,21 @@ class OrganizerEventService(
         eventRepository.delete(event)
     }
 
-    @Transactional
-    fun createEvent(request: CreateUpdateEventDto, organizerId: UUID, date: LocalDate? = null, parentId: UUID? = null): Event {
-        val eventData = eventAssembler.buildEventFromRequest(request, organizerId, date, parentId)
-        return eventRepository.save(eventData)
-    }
-
-
     private fun handleCapacityRecalculation(existingEvent: Event, request: CreateUpdateEventDto) {
         val newMax = request.additionalDetails?.maxAttendees ?: return
         val eventId = existingEvent.id ?: return
         val confirmedCount = eventRegistrationRepository.findByEventId(eventId)
             .count { it.status == RegistrationStatus.REGISTERED }
+        val settings = eventRegistrationSettingsRepository.findByEventId(eventId)
 
         // 3. Validation: Don't let them shrink the bucket smaller than the people already inside
         require(newMax >= confirmedCount) {
             "Cannot lower capacity to $newMax. You already have $confirmedCount confirmed attendees. " +
                     "Please cancel some attendees before lowering the limit."
+        }
+
+        require(settings?.registrationMode == RegistrationMode.COUPLE || newMax % 2 == 0) {
+            "You cannot have odd capacity for couple event"
         }
 
         // 4. If the capacity actually changed, let the Manager handle the fallout

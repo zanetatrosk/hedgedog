@@ -36,6 +36,7 @@ class EventAssembler(
         val eventTime = request.basicInfo.time
         val endDate = request.basicInfo.endDate
 
+        validateNewOrUpdatedEvent(request, eventDate)
         val currency = request.basicInfo.currency?.let { code ->
             currencyRepository.findByCode(code)
                 .orElseThrow { IllegalArgumentException("Currency not found: $code") }
@@ -83,5 +84,17 @@ class EventAssembler(
             media = mediaList?.toMutableList() ?: mutableListOf(),
             organizer = organizer
         )
+    }
+
+    private fun validateNewOrUpdatedEvent(request: CreateUpdateEventDto, startDate: LocalDate){
+        require(request.basicInfo.endDate?.isAfter(startDate) ?: true) {
+            "End date must be after start date"
+        }
+
+        require(request.basicInfo.price == null && request.basicInfo.currency == null
+                || request.basicInfo.price != null && request.basicInfo.currency != null) {
+            "Price and currency must be provided together"
+        }
+
     }
 }
