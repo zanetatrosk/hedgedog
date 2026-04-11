@@ -1,11 +1,10 @@
 package com.example.bedanceapp.service.registration
-import com.example.bedanceapp.controller.RegistrationAction
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
-import com.example.bedanceapp.model.OrganizerAction
 import com.example.bedanceapp.model.User
+import com.example.bedanceapp.model.RegistrationAction
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository
@@ -79,7 +78,7 @@ class OrganizerRegistrationServiceTest {
         assertEquals(RegistrationStatus.REGISTERED, updated.status)
         assertNull(updated.waitlistedAt)
         verify(eventRegistrationRepository).flush()
-        verify(registrationRecalculateService, org.mockito.kotlin.never()).recalculate(org.mockito.kotlin.any(), org.mockito.kotlin.any())
+        verify(registrationRecalculateService, org.mockito.kotlin.never()).recalculate(any(), any())
     }
     @Test
     @DisplayName("updateRegistrationStatus rejects registration and recalculates capacity")
@@ -110,8 +109,8 @@ class OrganizerRegistrationServiceTest {
                 action = RegistrationAction.CANCEL
             )
         }
-        verify(eventRegistrationRepository, org.mockito.kotlin.never()).save(org.mockito.kotlin.any())
-        verify(registrationRecalculateService, org.mockito.kotlin.never()).recalculate(org.mockito.kotlin.any(), org.mockito.kotlin.any())
+        verify(eventRegistrationRepository, org.mockito.kotlin.never()).save(any())
+        verify(registrationRecalculateService, org.mockito.kotlin.never()).recalculate(any(), any())
     }
     @Test
     @DisplayName("syncGoogleFormData delegates sync to Google form service")

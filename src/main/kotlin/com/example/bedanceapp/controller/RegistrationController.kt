@@ -2,6 +2,9 @@ package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationDto
+import com.example.bedanceapp.model.RegistrationAction
+import com.example.bedanceapp.model.RegistrationActionRequest
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.service.registration.AttendeeRegistrationService
 import com.example.bedanceapp.service.registration.EventRegistrationDataService
@@ -40,7 +43,7 @@ class RegistrationController(
      */
     @GetMapping("/{id}/registrations")
     fun getApprovedRegistrations(@PathVariable id: UUID): ResponseEntity<List<EventRegistrationDto>> {
-        val registrations = eventRegistrationQueryService.getAllApprovedRegistrations(id);
+        val registrations = eventRegistrationQueryService.getAllApprovedRegistrations(id)
         return ResponseEntity.ok(registrations)
     }
 
@@ -150,43 +153,5 @@ data class RegisterEventRequest(
     val isAnonymous: Boolean = false,
 )
 
-enum class RegistrationStatus {
-    REGISTERED,
-    INTERESTED,
-    WAITLISTED,
-    CANCELLED,
-    REJECTED,
-    PENDING;
 
-    fun canTransitionTo(target: RegistrationStatus): Boolean {
-        if (this == target) return true
-
-        val allowedTargets = when (this) {
-            INTERESTED -> setOf(PENDING, REGISTERED, WAITLISTED)
-            PENDING -> setOf(REGISTERED, WAITLISTED, REJECTED, CANCELLED)
-            WAITLISTED -> setOf(REGISTERED, REJECTED, CANCELLED)
-            REGISTERED -> setOf(REJECTED, CANCELLED)
-            CANCELLED -> setOf(INTERESTED, PENDING, REGISTERED, WAITLISTED)
-            REJECTED -> emptySet()
-        }
-
-        return target in allowedTargets
-    }
-
-    fun requireTransitionTo(target: RegistrationStatus) {
-        require(canTransitionTo(target)) {
-            "Transition from $this to $target is not allowed"
-        }
-    }
-}
-
-data class RegistrationActionRequest(
-    val action: RegistrationAction
-)
-
-enum class RegistrationAction {
-    APPROVE,    // Organizer action: approve pending registration
-    REJECT,     // Organizer action: reject registration
-    CANCEL      // User action: cancel their own registration
-}
 

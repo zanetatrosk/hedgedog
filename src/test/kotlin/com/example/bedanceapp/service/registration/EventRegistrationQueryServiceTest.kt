@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.registration
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.DancerRole
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventRegistrationDto

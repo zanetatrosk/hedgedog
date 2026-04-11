@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.registration
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import java.time.LocalDateTime
 
 object RegistrationWaitlistTimestampResolver {

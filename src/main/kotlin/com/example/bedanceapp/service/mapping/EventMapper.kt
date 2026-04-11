@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.mapping
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.AttendeeStats
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventDetailAdditionalDetails

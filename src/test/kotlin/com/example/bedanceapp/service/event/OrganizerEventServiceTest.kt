@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.event
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.BasicInfoRequest
 import com.example.bedanceapp.model.CreateUpdateEventDto
 import com.example.bedanceapp.model.Event

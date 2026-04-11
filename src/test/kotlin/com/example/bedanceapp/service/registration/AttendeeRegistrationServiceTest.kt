@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.registration
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.DancerRole
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventRegistration
@@ -205,6 +205,36 @@ class AttendeeRegistrationServiceTest {
                 eventId = eventId,
                 userId = userId,
                 status = RegistrationStatus.REGISTERED,
+                roleId = null,
+                email = "user@example.com",
+                isAnonymous = false
+            )
+        }
+
+        verify(eventRegistrationRepository, never()).save(any())
+    }
+
+    @Test
+    fun `registerUserForEvent throws when transitioning from cancelled to interested`() {
+        val event = createEvent(maxAttendees = 15)
+        val existing = createRegistration(status = RegistrationStatus.CANCELLED)
+
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)).thenReturn(listOf(existing))
+        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)).thenReturn(emptyList())
+        whenever(registrationStatusService.assignRegistrationStatus(
+            registrations = any(),
+            status = eq(RegistrationStatus.INTERESTED),
+            eventId = eq(eventId),
+            roleId = anyOrNull(),
+            maxAttendees = anyOrNull()
+        )).thenReturn(RegistrationStatus.INTERESTED)
+
+        assertThrows<IllegalArgumentException> {
+            attendeeRegistrationService.registerUserForEvent(
+                eventId = eventId,
+                userId = userId,
+                status = RegistrationStatus.INTERESTED,
                 roleId = null,
                 email = "user@example.com",
                 isAnonymous = false

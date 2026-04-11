@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.user
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.AttendeeStats
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventParent

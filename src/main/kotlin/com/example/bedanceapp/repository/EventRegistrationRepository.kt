@@ -1,6 +1,6 @@
 package com.example.bedanceapp.repository
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository

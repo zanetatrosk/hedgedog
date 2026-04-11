@@ -1,10 +1,10 @@
 package com.example.bedanceapp.service.registration
 
-import com.example.bedanceapp.controller.RegistrationAction
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.OrganizerAction
+import com.example.bedanceapp.model.RegistrationAction
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository

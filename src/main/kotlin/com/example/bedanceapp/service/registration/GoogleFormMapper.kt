@@ -1,6 +1,6 @@
 package com.example.bedanceapp.service.registration
 
-import com.example.bedanceapp.controller.RegistrationStatus
+import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.google.api.services.forms.v1.model.Answer
 import com.google.api.services.forms.v1.model.Form
