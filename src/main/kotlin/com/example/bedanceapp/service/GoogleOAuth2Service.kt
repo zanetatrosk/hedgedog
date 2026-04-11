@@ -22,10 +22,10 @@ import org.springframework.stereotype.Service
 @Service
 class GoogleOAuth2Service {
 
-    @Value("\${spring.security.oauth2.client.registration.google.client-id}")
+    @Value("\${spring.security.oauth2.client.registration.google.client-id:}")
     private lateinit var clientId: String
 
-    @Value("\${spring.security.oauth2.client.registration.google.client-secret}")
+    @Value("\${spring.security.oauth2.client.registration.google.client-secret:}")
     private lateinit var clientSecret: String
 
 
@@ -53,6 +53,7 @@ class GoogleOAuth2Service {
      * @return TokenResponse containing access_token, refresh_token, id_token, etc.
      */
     fun exchangeCodeForTokens(code: String, redirectUri: String): TokenResponse {
+        requireGoogleCredentials()
         return GoogleAuthorizationCodeTokenRequest(
             httpTransport,
             jsonFactory,
@@ -71,6 +72,7 @@ class GoogleOAuth2Service {
      * @return GoogleIdToken containing user information
      */
     fun verifyIdToken(idTokenString: String): GoogleIdToken {
+        requireGoogleCredentials()
         val verifier = GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
             .setAudience(listOf(clientId))
             .build()
@@ -104,6 +106,7 @@ class GoogleOAuth2Service {
      * @return TokenResponse with new access token
      */
     fun refreshAccessToken(refreshToken: String): TokenResponse {
+        requireGoogleCredentials()
         return com.google.api.client.auth.oauth2.RefreshTokenRequest(
             httpTransport,
             jsonFactory,
@@ -112,6 +115,15 @@ class GoogleOAuth2Service {
         ).setClientAuthentication(
             com.google.api.client.http.BasicAuthentication(clientId, clientSecret)
         ).execute()
+    }
+
+    private fun requireGoogleCredentials() {
+        require(clientId.isNotBlank() && clientId != "replace-with-google-client-id") {
+            "Google OAuth client ID is not configured"
+        }
+        require(clientSecret.isNotBlank() && clientSecret != "replace-with-google-client-secret") {
+            "Google OAuth client secret is not configured"
+        }
     }
 }
 
