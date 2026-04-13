@@ -17,13 +17,6 @@ class AuthenticationService(
     private val profileRepository: UserProfileRepository
 ) {
 
-    /**
-     * Token processing for Google OAuth2 authorization_code flow.
-     *
-     * @param request TokenRequest with grant_type and appropriate parameters
-     * @param currentUser Current authenticated user (required for incremental auth, optional for others)
-     * @return AuthenticationResponse with JWT access token and user info
-     */
     @Transactional
     fun processToken(request: TokenRequest, currentUser: User? = null): AuthResponse {
         return when (request.grantType) {

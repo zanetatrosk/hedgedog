@@ -11,6 +11,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
+/**
+ * Extracts Bearer JWTs from incoming requests, validates them, and sets the
+ * authenticated user in the Spring Security context when possible.
+ */
 @Component
 class JwtAuthenticationFilter(
     private val jwtService: JwtService,

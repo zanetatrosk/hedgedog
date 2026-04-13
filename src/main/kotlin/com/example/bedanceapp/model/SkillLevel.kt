@@ -20,3 +20,9 @@ data class SkillLevel(
     @Column(name = "created_at", updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 ) : Identifiable
+
+fun SkillLevel.toOrderedCodebook(): OrderedCodebookItem = OrderedCodebookItem(
+    id = id?.toString().orEmpty(),
+    name = name,
+    levelOrder = levelOrder
+)

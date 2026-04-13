@@ -1,6 +1,8 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.DancerRole
+import com.example.bedanceapp.model.CodebookItem
+import com.example.bedanceapp.model.toCodebook
+import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.service.DancerRoleService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -14,27 +16,10 @@ class DancerRolesController(
 ) {
 
     @GetMapping
-    fun getAllDancerRoles(): ResponseEntity<List<DancerRoleResponse>> {
+    fun getAllDancerRoles(): ResponseEntity<List<CodebookItem>> {
         val roles = dancerRoleService.findAll()
-        return ResponseEntity.ok(roles.map { DancerRoleResponse.from(it) })
-    }
-
-    @GetMapping("/{id}")
-    fun getDancerRoleById(@PathVariable id: UUID): ResponseEntity<DancerRoleResponse> {
-        val role = dancerRoleService.findById(id)
-        return ResponseEntity.ok(DancerRoleResponse.from(role))
+        return ResponseEntity.ok(roles.toCodebookList())
     }
 }
 
-data class DancerRoleResponse(
-    val id: UUID?,
-    val name: String
-) {
-    companion object {
-        fun from(dancerRole: DancerRole) = DancerRoleResponse(
-            id = dancerRole.id,
-            name = dancerRole.name
-        )
-    }
-}
 

@@ -12,6 +12,7 @@ import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
+/** Configures stateless JWT security rules and CORS for API requests. */
 @Configuration
 @EnableWebSecurity
 class SecurityConfiguration(
@@ -46,7 +47,7 @@ class SecurityConfiguration(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = listOf("http://localhost:3000", "http://localhost:5173")
+        configuration.allowedOrigins = listOf("http://localhost:3000")
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         configuration.allowedHeaders = listOf("*")
         configuration.allowCredentials = true

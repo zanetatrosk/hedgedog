@@ -1,6 +1,7 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.SkillLevel
+import com.example.bedanceapp.model.OrderedCodebookItem
+import com.example.bedanceapp.model.toOrderedCodebook
 import com.example.bedanceapp.service.SkillLevelService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -14,28 +15,8 @@ class SkillLevelsController(
 ) {
 
     @GetMapping
-    fun getAllSkillLevels(): ResponseEntity<List<SkillLevelResponse>> {
+    fun getAllSkillLevels(): ResponseEntity<List<OrderedCodebookItem>> {
         val levels = skillLevelService.findAll()
-        return ResponseEntity.ok(levels.map { SkillLevelResponse.from(it) })
-    }
-
-    @GetMapping("/{id}")
-    fun getSkillLevelById(@PathVariable id: UUID): ResponseEntity<SkillLevelResponse> {
-        val level = skillLevelService.findById(id)
-        return ResponseEntity.ok(SkillLevelResponse.from(level))
-    }
-}
-
-data class SkillLevelResponse(
-    val id: UUID?,
-    val name: String,
-    val levelOrder: Int
-) {
-    companion object {
-        fun from(skillLevel: SkillLevel) = SkillLevelResponse(
-            id = skillLevel.id,
-            name = skillLevel.name,
-            levelOrder = skillLevel.levelOrder
-        )
+        return ResponseEntity.ok(levels.map { level -> level.toOrderedCodebook() })
     }
 }

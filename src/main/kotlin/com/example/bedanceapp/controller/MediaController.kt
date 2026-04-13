@@ -25,10 +25,7 @@ class MediaController(
         @AuthenticationPrincipal user: User,
         @RequestParam("file") file: MultipartFile
     ): ResponseEntity<EventMedia> {
-
         val ownerId = user.id ?: return ResponseEntity.status(403).build()
-
-        // 🔐 auth can be checked inside service
         val media = mediaService.upload(file, ownerId) ?: return ResponseEntity.badRequest().build()
 
         return ResponseEntity.ok(
@@ -37,14 +34,13 @@ class MediaController(
     }
 
     /**
-     * Stream image / video (protected)
+     * Stream image / video
      */
     @GetMapping("/{id}")
     fun getMedia(
         @PathVariable id: UUID,
         response: HttpServletResponse
     ) {
-        // 🔐 auth / authorization inside service
         val (_, stream) = mediaService.getMedia(id)
 
         response.setHeader("Cache-Control", "private, max-age=3600")
@@ -55,6 +51,10 @@ class MediaController(
         }
     }
 
+    /**
+     * delete image / video
+     * deletion can be only done by the owner of media
+     */
     @DeleteMapping("/{id}")
     fun deleteMedia(
         @PathVariable id: UUID,

@@ -53,8 +53,13 @@ data class RegistrationStats(
     val followers: Int
 )
 
-data class CodebookItem (
+open class CodebookItem (
     val id: String,
     val name: String,
 )
 
+class OrderedCodebookItem(
+    id: String,
+    name: String,
+    val levelOrder: Int
+) : CodebookItem(id, name)

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*
  * Authentication Controller using Authorization Code Model
  * Based on: https://developers.google.com/identity/oauth2/web/guides/use-code-model
  *
- * Frontend uses Google Identity Services (GIS) library to obtain authorization code,
+ * Frontend obtain from Google code,
  * then sends the code to these endpoints for token exchange.
  */
 @RestController

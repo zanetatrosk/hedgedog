@@ -1,6 +1,8 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.EventType
+import com.example.bedanceapp.model.CodebookItem
+import com.example.bedanceapp.model.toCodebook
+import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.service.EventTypeService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -14,26 +16,8 @@ class EventTypesController(
 ) {
 
     @GetMapping
-    fun getAllEventTypes(): ResponseEntity<List<EventTypeResponse>> {
+    fun getAllEventTypes(): ResponseEntity<List<CodebookItem>> {
         val types = eventTypeService.findAll()
-        return ResponseEntity.ok(types.map { EventTypeResponse.from(it) })
-    }
-
-    @GetMapping("/{id}")
-    fun getEventTypeById(@PathVariable id: UUID): ResponseEntity<EventTypeResponse> {
-        val type = eventTypeService.findById(id)
-        return ResponseEntity.ok(EventTypeResponse.from(type))
-    }
-}
-
-data class EventTypeResponse(
-    val id: UUID?,
-    val name: String
-) {
-    companion object {
-        fun from(eventType: EventType) = EventTypeResponse(
-            id = eventType.id,
-            name = eventType.name
-        )
+        return ResponseEntity.ok(types.toCodebookList())
     }
 }

@@ -23,7 +23,7 @@ class AppController(
      * GET /api/app/summary
      *
      * Returns counts of:
-     * - Total registered dancers (users with profiles)
+     * - Total registered dancers
      * - Total event registrations
      * - Total events
      *

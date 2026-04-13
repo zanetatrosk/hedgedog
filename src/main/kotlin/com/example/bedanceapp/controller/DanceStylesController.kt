@@ -1,6 +1,8 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.DanceStyle
+import com.example.bedanceapp.model.CodebookItem
+import com.example.bedanceapp.model.toCodebook
+import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.service.DanceStyleService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -14,26 +16,8 @@ class DanceStylesController(
 ) {
 
     @GetMapping
-    fun getAllDanceStyles(): ResponseEntity<List<DanceStyleResponse>> {
+    fun getAllDanceStyles(): ResponseEntity<List<CodebookItem>> {
         val styles = danceStyleService.findAll()
-        return ResponseEntity.ok(styles.map { DanceStyleResponse.from(it) })
-    }
-
-    @GetMapping("/{id}")
-    fun getDanceStyleById(@PathVariable id: UUID): ResponseEntity<DanceStyleResponse> {
-        val style = danceStyleService.findById(id)
-        return ResponseEntity.ok(DanceStyleResponse.from(style))
-    }
-}
-
-data class DanceStyleResponse(
-    val id: UUID?,
-    val name: String
-) {
-    companion object {
-        fun from(danceStyle: DanceStyle) = DanceStyleResponse(
-            id = danceStyle.id,
-            name = danceStyle.name
-        )
+        return ResponseEntity.ok(styles.toCodebookList())
     }
 }
