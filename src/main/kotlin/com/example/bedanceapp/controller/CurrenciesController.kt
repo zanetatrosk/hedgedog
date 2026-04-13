@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.RestController
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
 class CurrenciesController(private val currenciesService: CurrenciesService) {
 
+    /**
+     * Get all available currencies
+     * GET /api/currencies
+     * 
+     * @return List of available currencies
+     */
     @GetMapping
     fun getAllCurrencies(): List<Currency> {
         return currenciesService.findAll()

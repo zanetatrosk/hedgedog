@@ -1,12 +1,10 @@
 package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.CodebookItem
-import com.example.bedanceapp.model.toCodebook
 import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.service.DancerRoleService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/dancer-roles")
@@ -15,6 +13,12 @@ class DancerRolesController(
     private val dancerRoleService: DancerRoleService
 ) {
 
+    /**
+     * Get all available dancer roles
+     * GET /api/dancer-roles
+     *
+     * @return List of codebook items representing dancer roles
+     */
     @GetMapping
     fun getAllDancerRoles(): ResponseEntity<List<CodebookItem>> {
         val roles = dancerRoleService.findAll()

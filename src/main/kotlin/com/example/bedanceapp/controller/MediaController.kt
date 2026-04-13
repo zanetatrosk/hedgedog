@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.util.UUID
 
+/**
+ * Media Controller
+ * 
+ * Handles media (image and video) operations including uploading, streaming,
+ * and deletion. Media files are associated with events and owned by users.
+ */
 @RestController
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
 @RequestMapping("/api/media")
@@ -18,7 +24,12 @@ class MediaController(
 ) {
 
     /**
-     * Upload image or video
+     * Upload image or video file
+     * POST /api/media
+     * 
+     * @param user Currently authenticated user (media owner)
+     * @param file The multipart file to upload (image or video)
+     * @return Uploaded media metadata including file ID and details
      */
     @PostMapping
     fun uploadMedia(
@@ -34,7 +45,11 @@ class MediaController(
     }
 
     /**
-     * Stream image / video
+     * Stream/download image or video
+     * GET /api/media/{id}
+     * 
+     * @param id The ID of the media file to retrieve
+     * @param response HttpServletResponse for streaming the file content
      */
     @GetMapping("/{id}")
     fun getMedia(
@@ -52,8 +67,15 @@ class MediaController(
     }
 
     /**
-     * delete image / video
-     * deletion can be only done by the owner of media
+     * Delete media file
+     * DELETE /api/media/{id}
+     * 
+     * Permanently removes a media file. Only the owner (user who uploaded the file)
+     * can delete it. Once deleted, the media file cannot be recovered.
+     * 
+     * @param id The ID of the media file to delete
+     * @param user Currently authenticated user (must be the media owner)
+     * @return No content response on successful deletion
      */
     @DeleteMapping("/{id}")
     fun deleteMedia(

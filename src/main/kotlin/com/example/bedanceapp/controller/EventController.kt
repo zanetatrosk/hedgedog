@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
+/**
+ * Event Controller
+ * 
+ * Handles event CRUD operations, publishing, cancellation, and retrieval.
+ * Supports event filtering by name, location, dance styles, and event types.
+ */
 @RestController
 @RequestMapping("/api/events")
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
@@ -27,6 +33,21 @@ class EventController(
     private val organizerEventService: OrganizerEventService
 ) {
 
+    /**
+     * Get all published events with optional filters and pagination
+     * GET /api/events
+     * 
+     * @param user Currently authenticated user (optional, for personalization)
+     * @param page Page number for pagination (default: 0)
+     * @param size Number of items per page (default: 10)
+     * @param eventName Optional filter by event name
+     * @param city Optional filter by city
+     * @param country Optional filter by country
+     * @param danceStyles Optional list of dance style IDs to filter by
+     * @param eventTypes Optional list of event type IDs to filter by
+     * @param includeCancelled Whether to include cancelled events (default: true)
+     * @return Paginated list of published events sorted by date and time
+     */
     @GetMapping
     fun getEvents(
         @AuthenticationPrincipal user: User? = null,
@@ -64,6 +85,19 @@ class EventController(
         return ResponseEntity.ok(response)
     }
 
+    /**
+     * Create a new event with specified occurrences
+     * POST /api/events
+     * 
+     * Creates one or more events based on the occurrence pattern specified in the request.
+     * Only authenticated users can create events.
+     * Events are created in DRAFT status and must be published separately.
+     * 
+     * @param request Event details including occurrence pattern
+     * @param user Currently authenticated user (organizer)
+     * @return Response with created event IDs and success message
+     * @throws ResponseEntity 401 if user is not authenticated
+     */
     @PostMapping
     fun createEvent(
         @Valid @RequestBody request: CreateUpdateEventDto,
@@ -80,6 +114,17 @@ class EventController(
         )
     }
 
+    /**
+     * Update an existing event
+     * PUT /api/events/{eventId}
+     * 
+     * @param eventId The ID of the event to update
+     * @param request Updated event details
+     * @param user Currently authenticated user (organizer)
+     * @return Response with updated event ID and success message
+     * @throws ResponseEntity 401 if user is not authenticated
+     * @throws ResponseEntity 403 if user is not the event organizer
+     */
     @PutMapping("/{eventId}")
     fun updateEvent(
         @PathVariable eventId: UUID,
@@ -96,6 +141,14 @@ class EventController(
         )
     }
 
+    /**
+     * Get detailed information about a specific event
+     * GET /api/events/{id}
+     *
+     * @param id The ID of the event
+     * @param user Currently authenticated user (optional, for personalization)
+     * @return Event details with all available information
+     */
     @GetMapping("/{id}")
     fun getEventById(
         @PathVariable id: UUID,
@@ -108,6 +161,14 @@ class EventController(
     /**
      * Publish a draft event
      * PATCH /api/events/{eventId}/publish
+     * 
+     * Transitions an event from DRAFT status to PUBLISHED status, making it visible
+     * to all users. Only the event organizer can publish their events.
+     * 
+     * @param eventId The ID of the event to publish
+     * @param request Publishing request with additional metadata
+     * @param user Currently authenticated user (organizer)
+     * @return Event status response confirming publication
      */
     @PatchMapping("/{eventId}/publish")
     fun publishEvent(
@@ -139,6 +200,14 @@ class EventController(
     /**
      * Cancel a published event (soft delete)
      * PATCH /api/events/{eventId}/cancel
+     * 
+     * Marks an event as CANCELLED, preventing new registrations but keeping the
+     * event record and historical data.
+     * Only the event organizer can cancel their events.
+     * 
+     * @param eventId The ID of the event to cancel
+     * @param user Currently authenticated user (organizer)
+     * @return Event status response confirming cancellation
      */
     @PatchMapping("/{eventId}/cancel")
     fun cancelEvent(
@@ -169,6 +238,14 @@ class EventController(
     /**
      * Delete a draft event (hard delete)
      * DELETE /api/events/{eventId}
+     * 
+     * Permanently removes a draft event from the system. Once deleted, the event
+     * cannot be recovered. Only draft events can be deleted.
+     * Only the event organizer can delete their events.
+     * 
+     * @param eventId The ID of the event to delete
+     * @param user Currently authenticated user (organizer)
+     * @return No content response on success
      */
     @DeleteMapping("/{eventId}")
     fun deleteEvent(
@@ -190,9 +267,6 @@ class EventController(
     }
 }
 
-/**
- * Response body for event status changes
- */
 data class EventStatusResponse(
     val id: UUID?,
     val status: String?,

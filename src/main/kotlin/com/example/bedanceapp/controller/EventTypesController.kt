@@ -1,12 +1,10 @@
 package com.example.bedanceapp.controller
 
 import com.example.bedanceapp.model.CodebookItem
-import com.example.bedanceapp.model.toCodebook
 import com.example.bedanceapp.model.toCodebookList
 import com.example.bedanceapp.service.EventTypeService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/event-types")
@@ -15,6 +13,12 @@ class EventTypesController(
     private val eventTypeService: EventTypeService
 ) {
 
+    /**
+     * Get all available event types
+     * GET /api/event-types
+     * 
+     * @return List of codebook items representing event types
+     */
     @GetMapping
     fun getAllEventTypes(): ResponseEntity<List<CodebookItem>> {
         val types = eventTypeService.findAll()

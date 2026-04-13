@@ -42,7 +42,6 @@ class AttendeeRegistrationService(
         userId: UUID,
         status: RegistrationStatus,
         roleId: UUID?,
-        email: String?,
         isAnonymous: Boolean
     ): EventRegistration {
         val event = getPublishedEvent(eventId)
@@ -55,7 +54,7 @@ class AttendeeRegistrationService(
             throw IllegalArgumentException("Invalid registration status: $status")
         }
 
-        val userEmail = resolveUserEmail(userId, email)
+        val userEmail = resolveUserEmail(userId)
         val existing = eventRegistrationRepository.findByEventIdAndUserId(eventId, userId).lastOrNull()
         val role = resolveRole(roleId)
         val allRegistrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)
@@ -122,11 +121,7 @@ class AttendeeRegistrationService(
         return event
     }
 
-    private fun resolveUserEmail(userId: UUID, providedEmail: String?): String {
-        if (!providedEmail.isNullOrBlank()) {
-            return providedEmail
-        }
-
+    private fun resolveUserEmail(userId: UUID): String {
         return userRepository.findById(userId)
             .orElseThrow { IllegalArgumentException("User not found with id: $userId") }
             .email

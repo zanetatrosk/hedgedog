@@ -14,6 +14,10 @@ class GoogleFormsController(
 
     /**
      * Check if user has granted Google Forms access
+     * GET /api/google-forms/access-status
+     * 
+     * @param user Currently authenticated user
+     * @return Map containing hasAccess boolean indicating if user has granted Google Forms scope
      */
     @GetMapping("/access-status")
     fun checkFormsAccess(@AuthenticationPrincipal user: User): ResponseEntity<Map<String, Boolean>> {

@@ -5,7 +5,6 @@ import com.example.bedanceapp.model.toOrderedCodebook
 import com.example.bedanceapp.service.SkillLevelService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/skill-levels")
@@ -14,6 +13,11 @@ class SkillLevelsController(
     private val skillLevelService: SkillLevelService
 ) {
 
+    /**
+     * Get all available skill levels
+     * GET /api/skill-levels
+     * @return List of codebook items representing skill levels
+     */
     @GetMapping
     fun getAllSkillLevels(): ResponseEntity<List<OrderedCodebookItem>> {
         val levels = skillLevelService.findAll()

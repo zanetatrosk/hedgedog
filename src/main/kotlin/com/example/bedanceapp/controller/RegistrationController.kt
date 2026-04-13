@@ -17,6 +17,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
+/**
+ * Registration Controller
+ * 
+ * Handles event registration operations including RSVP management, registration approvals,
+ * organizer registration statistics, and Google Forms synchronization.
+ */
 @RestController
 @RequestMapping("/api/events")
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
@@ -30,16 +36,25 @@ class RegistrationController(
     /**
      * Get statistics for an event including registration data
      * GET /api/events/{id}/stats
+     * 
+     * Returns comprehensive registration statistics for the event and the list of registrations for organizer.
+     * 
+     * @param id The ID of the event
+     * @return Statistics response with registration data
      */
     @GetMapping("/{id}/stats")
-    fun getAllEventRegistrations(@PathVariable id: UUID): ResponseEntity<StatsResponse> {
-        val stats = eventRegistrationDataService.getAllRegistrationsByEvent(id)
+    fun getAllEventRegistrations(@PathVariable id: UUID, @AuthenticationPrincipal user: User): ResponseEntity<StatsResponse> {
+        val userId = requireNotNull(user.id) { "Authenticated user ID is missing" }
+        val stats = eventRegistrationDataService.getAllRegistrationsByEvent(id, userId)
         return ResponseEntity.ok(stats)
     }
 
     /**
      * Get registrations that are approved for an event
      * GET /api/events/{id}/registrations
+     * 
+     * @param id The ID of the event
+     * @return List of approved event registrations
      */
     @GetMapping("/{id}/registrations")
     fun getApprovedRegistrations(@PathVariable id: UUID): ResponseEntity<List<EventRegistrationDto>> {
@@ -49,8 +64,16 @@ class RegistrationController(
 
     /**
      * Create or update user's RSVP for an event
-     * PUT /api/events/{eventId}/my-rsvp
-     * Valid statuses: interested, registered, waitlisted
+     * PUT /api/events/{eventId}/registrations
+     * 
+     * Allows an authenticated user to register for an event with a specific status
+     * (interested or registered) and other information related to registration. Creates a new registration or updates
+     * an existing one.
+     * 
+     * @param eventId The ID of the event
+     * @param user Currently authenticated user
+     * @param request Registration details including status and optional role
+     * @return Created or updated event registration
      */
     @PutMapping("/{eventId}/registrations")
     fun createOrUpdateMyRsvp(
@@ -64,15 +87,19 @@ class RegistrationController(
             userId = userId,
             status = request.status,
             roleId = request.roleId,
-            email = request.email,
             isAnonymous = request.isAnonymous,
         )
         return ResponseEntity.ok(registration)
     }
 
     /**
-     * Cancel/remove user's RSVP for an event
-     * DELETE /api/events/{eventId}/my-rsvp
+     * Remove user registration for an event (only for registrations that have a state interested)
+     * DELETE /api/events/{eventId}/registrations/{registrationId}
+     * 
+     * @param eventId The ID of the event
+     * @param registrationId The ID of the registration to delete
+     * @param user Currently authenticated user
+     * @return Success message response
      */
     @DeleteMapping("/{eventId}/registrations/{registrationId}")
     fun deleteMyRsvp(
@@ -89,10 +116,9 @@ class RegistrationController(
      * Manually sync event's Google Form registration data
      * POST /api/events/{eventId}/registrations/synchronization
      *
-     * Note: Google Forms are automatically synced every 10 minutes.
-     * This endpoint is available for manual/immediate sync if needed.
-     *
-     * This fetches the latest form structure from Google Forms and updates the cached structure
+     * @param eventId The ID of the event
+     * @param user Currently authenticated user (organizer)
+     * @return Success message with event ID
      */
     @PostMapping("/{eventId}/registrations/synchronization")
     fun syncGoogleFormData(
@@ -118,10 +144,16 @@ class RegistrationController(
     /**
      * Update registration status
      * PATCH /api/events/{eventId}/registrations/{registrationId}
-     *
-     * Handles both:
-     * - Organizer actions (approve/reject)
-     * - User cancellations
+     * 
+     * Handles both organizer actions (approve/reject) and user cancellations.
+     * Organizers can approve or reject pending registrations.
+     * Users can cancel their own registrations.
+     * 
+     * @param eventId The ID of the event
+     * @param registrationId The ID of the registration to update
+     * @param user Currently authenticated user
+     * @param request Action request specifying approve, reject, or cancel
+     * @return Updated event registration
      */
     @PatchMapping("/{eventId}/registrations/{registrationId}")
     fun updateRegistrationStatus(
@@ -143,14 +175,10 @@ class RegistrationController(
     }
 }
 
-/**
- * Request body for event registration
- */
 data class RegisterEventRequest(
-    val status: RegistrationStatus,  // interested, registered, waitlisted
-    val roleId: UUID? = null,  // Leader, Follower
-    val email: String? = null,  // Optional - will use user's email from profile if not provided
-    val isAnonymous: Boolean = false,
+    val status: RegistrationStatus,  // interested, registered
+    val roleId: UUID? = null,  // Optional role (e.g., Leader, Follower)
+    val isAnonymous: Boolean = false,  // Whether registration should be anonymous
 )
 
 

@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.*
 
 /**
  * Authentication Controller using Authorization Code Model
- * Based on: https://developers.google.com/identity/oauth2/web/guides/use-code-model
  *
- * Frontend obtain from Google code,
- * then sends the code to these endpoints for token exchange.
+ * Handles JWT-based authentication using Google OAuth2 authorization code flow.
+ * Frontend obtains authorization code from Google, then sends the code to these endpoints 
+ * for token exchange and user authentication.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -23,6 +23,7 @@ class AuthenticationController(
 
     /**
      * Token endpoint for authorization code authentication flow
+     * POST /api/auth/token
      *
      * Supports:
      * - authorization_code: Initial login or incremental authorization
@@ -42,6 +43,10 @@ class AuthenticationController(
 
     /**
      * Get current authenticated user info
+     * GET /api/auth/me
+     * 
+     * @param user Currently authenticated user from Spring Security context
+     * @return Current user's information
      */
     @GetMapping("/me")
     fun getCurrentUser(@AuthenticationPrincipal user: User): ResponseEntity<UserDto> {

@@ -1,9 +1,11 @@
 package com.example.bedanceapp.service.registration
 
+import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.RecurringDateInfo
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
+import com.example.bedanceapp.service.EventAccessValidator
 import com.example.bedanceapp.service.event.CreateEventService
 import com.example.bedanceapp.service.event.EventService
 import org.springframework.stereotype.Service
@@ -16,7 +18,7 @@ import java.util.UUID
  */
 @Service
 class EventRegistrationDataService(
-    private val eventRepository: EventRepository,
+    private val eventAccessValidator: EventAccessValidator,
     private val eventService: EventService,
     private val registrationStrategyFactory: RegistrationStrategyFactory,
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
@@ -26,9 +28,8 @@ class EventRegistrationDataService(
      * Get all statistics for an event including registration data
      */
     @Transactional
-    fun getAllRegistrationsByEvent(eventID: UUID): StatsResponse {
-        val event = eventRepository.findById(eventID)
-            .orElseThrow { IllegalArgumentException("Event not found with id: $eventID") }
+    fun getAllRegistrationsByEvent(eventID: UUID, userId: UUID): StatsResponse {
+        val event = eventAccessValidator.requireOwnedEvent(eventID, userId)
 
         // Get registration settings to determine mode
         val registrationSettings = eventRegistrationSettingsRepository.findByEventId(eventID)
