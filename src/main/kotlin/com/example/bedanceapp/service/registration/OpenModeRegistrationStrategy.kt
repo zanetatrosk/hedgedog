@@ -8,10 +8,6 @@ import com.example.bedanceapp.repository.SkillLevelRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-/**
- * Base strategy for OPEN registration mode
- * Simple registration without roles or partner matching
- */
 @Component
 open class OpenModeRegistrationStrategy(
     protected val eventRegistrationRepository: EventRegistrationRepository,
@@ -25,10 +21,6 @@ open class OpenModeRegistrationStrategy(
         return RegistrationData(headers, registrations)
     }
 
-    /**
-     * Get headers for this registration mode
-     * Override this to add mode-specific headers (e.g., role for couple mode)
-     */
     protected fun getHeaders(): List<Header> {
         val skillLevels = skillLevelRepository.findAll()
         return listOf(
@@ -39,10 +31,6 @@ open class OpenModeRegistrationStrategy(
         )
     }
 
-    /**
-     * Get all registrations for an event
-     * Only includes users who are actually registered (excludes INTERESTED status)
-     */
     protected fun getRegistrations(event: Event): List<RegistrationRow> {
         val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
         // Fetch only registered users, excluding those with INTERESTED status
@@ -53,10 +41,6 @@ open class OpenModeRegistrationStrategy(
         }
     }
 
-    /**
-     * Map a single registration to a row
-     * Override this to add mode-specific data fields
-     */
     protected fun mapRegistrationToRow(registration: EventRegistration): RegistrationRow {
         val fullName = buildFullName(registration)
 

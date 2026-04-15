@@ -20,13 +20,11 @@ interface EventRegistrationRepository : JpaRepository<EventRegistration, UUID> {
 
     fun findByEventIdAndStatus(eventId: UUID, status: RegistrationStatus): List<EventRegistration>
 
-    fun findByUserIdAndStatus(eventId: UUID, status: RegistrationStatus, pageable: Pageable): List<EventRegistration>
+    fun findByStatusNot(status: RegistrationStatus): List<EventRegistration>
 
     fun findByEventIdOrderByCreatedAt(eventId: UUID): List<EventRegistration>
 
     fun findByEventIdAndStatusNot(eventId: UUID, status: RegistrationStatus): List<EventRegistration>
-
-    fun findByUserIdAndStatusNot(eventId: UUID, status: RegistrationStatus, pageable: Pageable): List<EventRegistration>
 
     fun findByIdAndEventId(id: UUID, eventId: UUID): EventRegistration?
 

@@ -10,6 +10,10 @@ class MediaCleanupScheduler(
 ) {
     private val logger = LoggerFactory.getLogger(MediaCleanupScheduler::class.java)
 
+    /**
+     * Job that deletes media that are not linked to any entity (profile or event)
+     * Run at 3am every day by default
+     */
     @Scheduled(cron = "\${media.cleanup.cron:0 0 3 * * *}")
     fun cleanupOrphanedMedia() {
         logger.info("Starting orphaned media cleanup job")

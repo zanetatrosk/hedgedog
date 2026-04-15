@@ -10,7 +10,7 @@ import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository
-import com.example.bedanceapp.service.EventAccessValidator
+import com.example.bedanceapp.service.validation.EventAccessValidator
 import com.example.bedanceapp.service.registration.OrganizerRegistrationService
 import com.example.bedanceapp.service.registration.RegistrationRecalculateService
 import org.springframework.stereotype.Service

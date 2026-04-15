@@ -1,12 +1,9 @@
 package com.example.bedanceapp.service.registration
 
-import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.RecurringDateInfo
 import com.example.bedanceapp.model.RegistrationMode
-import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
-import com.example.bedanceapp.service.EventAccessValidator
-import com.example.bedanceapp.service.event.CreateEventService
+import com.example.bedanceapp.service.validation.EventAccessValidator
 import com.example.bedanceapp.service.event.EventService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,9 +21,6 @@ class EventRegistrationDataService(
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
 ) {
 
-    /**
-     * Get all statistics for an event including registration data
-     */
     @Transactional
     fun getAllRegistrationsByEvent(eventID: UUID, userId: UUID): StatsResponse {
         val event = eventAccessValidator.requireOwnedEvent(eventID, userId)
@@ -43,7 +37,7 @@ class EventRegistrationDataService(
             eventId = event.id!!,
             eventName = event.eventName,
             date = event.eventDate.toString(),
-            recurringDates = eventService.getUpcomingDates(event.parentEventId),
+            recurringDates = eventService.getUpcomingDates(event.parentEventId, true),
             registrationData = registrationData,
             registrationMode = registrationMode
         )

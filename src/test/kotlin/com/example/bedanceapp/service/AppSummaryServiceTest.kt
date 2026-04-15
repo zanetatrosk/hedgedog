@@ -3,6 +3,8 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.User
+import com.example.bedanceapp.model.RegistrationStatus
+import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.UserProfileRepository
@@ -36,7 +38,8 @@ class AppSummaryServiceTest {
     @Test
     fun `getAppSummary aggregates dancers registrations and events`() {
         whenever(userProfileRepository.count()).thenReturn(10)
-        whenever(eventRegistrationRepository.count()).thenReturn(25)
+        whenever(eventRegistrationRepository.findByStatusNot(RegistrationStatus.INTERESTED))
+            .thenReturn(List(25) { createRegistration() })
         whenever(eventRepository.findByStatus(EventStatus.PUBLISHED)).thenReturn(listOf(createEvent(EventStatus.PUBLISHED), createEvent(EventStatus.PUBLISHED)))
         whenever(eventRepository.findByStatus(EventStatus.CANCELLED)).thenReturn(listOf(createEvent(EventStatus.CANCELLED)))
 
@@ -69,5 +72,17 @@ class AppSummaryServiceTest {
             updatedAt = LocalDateTime.now()
         )
     }
-}
 
+    private fun createRegistration(): EventRegistration {
+        return EventRegistration(
+            id = UUID.randomUUID(),
+            eventId = UUID.randomUUID(),
+            userId = UUID.randomUUID(),
+            status = RegistrationStatus.REGISTERED,
+            roleId = null,
+            email = "test@example.com",
+            isAnonymous = false,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+}

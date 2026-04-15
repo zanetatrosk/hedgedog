@@ -12,8 +12,6 @@ import java.util.UUID
 
 /**
  * Recalculates waitlisted registrations when event capacity changes or registrations are cancelled/rejected.
- *
- * This service owns the promotion rules so registration orchestration code can stay focused on lifecycle actions.
  */
 @Service
 class RegistrationRecalculateService(

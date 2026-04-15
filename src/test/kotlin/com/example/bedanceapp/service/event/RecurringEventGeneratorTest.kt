@@ -69,7 +69,7 @@ class RecurringEventGeneratorTest {
             )
         }
 
-        assertEquals("end date of ocurrance does not match with the day of week when event was started", exception.message)
+        assertEquals("For weekly recurrence, end date must fall on the same day of week as start date. Start: SATURDAY, End: MONDAY", exception.message)
     }
 
     @Test

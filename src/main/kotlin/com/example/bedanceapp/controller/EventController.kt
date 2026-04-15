@@ -96,7 +96,6 @@ class EventController(
      * @param request Event details including occurrence pattern
      * @param user Currently authenticated user (organizer)
      * @return Response with created event IDs and success message
-     * @throws ResponseEntity 401 if user is not authenticated
      */
     @PostMapping
     fun createEvent(
@@ -122,8 +121,6 @@ class EventController(
      * @param request Updated event details
      * @param user Currently authenticated user (organizer)
      * @return Response with updated event ID and success message
-     * @throws ResponseEntity 401 if user is not authenticated
-     * @throws ResponseEntity 403 if user is not the event organizer
      */
     @PutMapping("/{eventId}")
     fun updateEvent(
@@ -146,7 +143,7 @@ class EventController(
      * GET /api/events/{id}
      *
      * @param id The ID of the event
-     * @param user Currently authenticated user (optional, for personalization)
+     * @param user Currently authenticated user
      * @return Event details with all available information
      */
     @GetMapping("/{id}")

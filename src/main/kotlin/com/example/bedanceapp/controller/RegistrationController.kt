@@ -50,7 +50,7 @@ class RegistrationController(
     }
 
     /**
-     * Get registrations that are approved for an event
+     * Get registrations that are in state registered for an event
      * GET /api/events/{id}/registrations
      * 
      * @param id The ID of the event

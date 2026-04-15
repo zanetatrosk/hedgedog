@@ -73,8 +73,9 @@ class RecurringEventGenerator {
             dates.add(currentDate)
             currentDate = currentDate.plusWeeks(1)
         }
-        require(dates.last() == endDate) {"end date of ocurrance does not match with the day of week when event was started"}
-
+        require(dates.last() == endDate) {
+            "For weekly recurrence, end date must fall on the same day of week as start date. Start: ${startDate.dayOfWeek}, End: ${endDate.dayOfWeek}"
+        }
         return dates
     }
 

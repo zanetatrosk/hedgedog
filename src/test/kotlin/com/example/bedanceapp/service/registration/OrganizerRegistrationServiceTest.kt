@@ -8,8 +8,8 @@ import com.example.bedanceapp.model.RegistrationAction
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository
-import com.example.bedanceapp.service.EventAccessValidator
-import com.example.bedanceapp.service.RegistrationAccessValidator
+import com.example.bedanceapp.service.validation.EventAccessValidator
+import com.example.bedanceapp.service.validation.RegistrationAccessValidator
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -46,7 +46,6 @@ class OrganizerRegistrationServiceTest {
         MockitoAnnotations.openMocks(this)
         organizerRegistrationService = OrganizerRegistrationService(
             eventRegistrationRepository,
-            eventRepository,
             registrationStatusService,
             registrationRecalculateService,
             googleFormSyncService,

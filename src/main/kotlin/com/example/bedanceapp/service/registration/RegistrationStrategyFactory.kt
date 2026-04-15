@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component
 
 /**
  * Factory to provide the appropriate registration data strategy based on registration mode
- * Uses a map-based approach for clean, type-safe strategy selection
  */
 @Component
 class RegistrationStrategyFactory(

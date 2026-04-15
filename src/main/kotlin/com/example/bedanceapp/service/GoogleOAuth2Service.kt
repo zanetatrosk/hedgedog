@@ -1,9 +1,12 @@
 package com.example.bedanceapp.service
 
+import com.google.api.client.auth.oauth2.RefreshTokenRequest
 import com.google.api.client.auth.oauth2.TokenResponse
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import com.google.api.client.http.BasicAuthentication
+import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import org.springframework.beans.factory.annotation.Value
@@ -11,13 +14,6 @@ import org.springframework.stereotype.Service
 
 /**
  * Google OAuth2 Service using the Authorization Code Model
- * Based on: https://developers.google.com/identity/oauth2/web/guides/use-code-model
- *
- * This service handles:
- * - Exchanging authorization codes for tokens
- * - Verifying ID tokens
- * - Refreshing access tokens
- * - Managing OAuth2 scopes
  */
 @Service
 class GoogleOAuth2Service {
@@ -44,14 +40,6 @@ class GoogleOAuth2Service {
     val baseScopes = listOf(SCOPE_OPENID, SCOPE_EMAIL, SCOPE_PROFILE)
     val formsScopes = listOf(SCOPE_FORMS_BODY, SCOPE_FORMS_RESPONSES)
 
-    /**
-     * Exchange authorization code for access token and refresh token
-     * Uses the code model: https://developers.google.com/identity/oauth2/web/guides/use-code-model
-     *
-     * @param code Authorization code received from Google Identity Services
-     * @param redirectUri The redirect URI to use (use "postmessage" for code model)
-     * @return TokenResponse containing access_token, refresh_token, id_token, etc.
-     */
     fun exchangeCodeForTokens(code: String, redirectUri: String): TokenResponse {
         requireGoogleCredentials()
         return GoogleAuthorizationCodeTokenRequest(
@@ -65,12 +53,6 @@ class GoogleOAuth2Service {
         ).execute()
     }
 
-    /**
-     * Verify and decode Google ID token
-     *
-     * @param idTokenString The ID token string from Google
-     * @return GoogleIdToken containing user information
-     */
     fun verifyIdToken(idTokenString: String): GoogleIdToken {
         requireGoogleCredentials()
         val verifier = GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
@@ -83,9 +65,6 @@ class GoogleOAuth2Service {
         return idToken
     }
 
-    /**
-     * Extract user information from ID token payload
-     */
     fun getUserInfoFromIdToken(idToken: GoogleIdToken): UserInfoFromToken {
         val payload = idToken.payload
         return UserInfoFromToken(
@@ -99,37 +78,28 @@ class GoogleOAuth2Service {
         )
     }
 
-    /**
-     * Refresh access token using refresh token
-     *
-     * @param refreshToken The refresh token
-     * @return TokenResponse with new access token
-     */
     fun refreshAccessToken(refreshToken: String): TokenResponse {
         requireGoogleCredentials()
-        return com.google.api.client.auth.oauth2.RefreshTokenRequest(
+        return RefreshTokenRequest(
             httpTransport,
             jsonFactory,
-            com.google.api.client.http.GenericUrl("https://oauth2.googleapis.com/token"),
+            GenericUrl("https://oauth2.googleapis.com/token"),
             refreshToken
         ).setClientAuthentication(
-            com.google.api.client.http.BasicAuthentication(clientId, clientSecret)
+            BasicAuthentication(clientId, clientSecret)
         ).execute()
     }
 
     private fun requireGoogleCredentials() {
-        require(clientId.isNotBlank() && clientId != "replace-with-google-client-id") {
+        require(clientId.isNotBlank()) {
             "Google OAuth client ID is not configured"
         }
-        require(clientSecret.isNotBlank() && clientSecret != "replace-with-google-client-secret") {
+        require(clientSecret.isNotBlank()) {
             "Google OAuth client secret is not configured"
         }
     }
 }
 
-/**
- * User information extracted from ID token
- */
 data class UserInfoFromToken(
     val id: String,
     val email: String,

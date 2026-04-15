@@ -144,7 +144,6 @@ CREATE TABLE event_registration_settings (
     registration_mode VARCHAR(20) NOT NULL DEFAULT 'OPEN',
     form_id VARCHAR(255),
     form_structure JSONB,
-    allow_waitlist BOOLEAN NOT NULL DEFAULT false,
     require_approval BOOLEAN NOT NULL DEFAULT false
 );
 

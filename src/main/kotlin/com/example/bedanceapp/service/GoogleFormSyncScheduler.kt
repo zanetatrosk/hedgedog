@@ -8,10 +8,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 
-/**
- * Scheduled job to automatically sync Google Form registration data
- * Runs every hour for all events that use GOOGLE_FORM registration mode
- */
 @Service
 class GoogleFormSyncScheduler(
     private val eventRegistrationSettingsRepository: EventRegistrationSettingsRepository,

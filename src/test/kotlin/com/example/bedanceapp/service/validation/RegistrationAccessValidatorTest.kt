@@ -3,6 +3,7 @@ package com.example.bedanceapp.service
 import com.example.bedanceapp.model.RegistrationStatus
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository
+import com.example.bedanceapp.service.validation.RegistrationAccessValidator
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test

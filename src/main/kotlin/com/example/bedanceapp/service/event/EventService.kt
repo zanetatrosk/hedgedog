@@ -44,16 +44,20 @@ class EventService(
     fun getEventDetailById(eventId: UUID, userId: UUID? = null): EventDetailDto {
         val event = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
-
+        val isUserOrganizer = event.organizerId == userId
+        require(event.status == EventStatus.PUBLISHED || isUserOrganizer){
+            "Event not found with id: $eventId"
+        }
         val parentEventId = event.parentEventId
-        val recurringDates = getUpcomingDates(parentEventId)
+        val recurringDates = getUpcomingDates(parentEventId, isUserOrganizer)
         return eventMapper.toDetailData(event, userId, recurringDates)
     }
 
     @Transactional(readOnly = true)
-    fun getUpcomingDates(parentEventId: UUID?): List<RecurringDateInfo> {
+    fun getUpcomingDates(parentEventId: UUID?, isUserOrganizer: Boolean): List<RecurringDateInfo> {
         return parentEventId?.let { id ->
             eventRepository.findByParentEventId(id)
+                .filter {isUserOrganizer || it.status != EventStatus.DRAFT }
                 .map { RecurringDateInfo(date = it.eventDate.toString(), id = it.id.toString()) }
                 .sortedBy { it.date }
         } ?: emptyList()

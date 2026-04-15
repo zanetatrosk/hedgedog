@@ -1,4 +1,4 @@
-package com.example.bedanceapp.service
+package com.example.bedanceapp.service.validation
 
 import com.example.bedanceapp.model.EventRegistration
 import com.example.bedanceapp.repository.EventRegistrationRepository

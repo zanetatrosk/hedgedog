@@ -9,7 +9,7 @@ import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.UserRepository
-import com.example.bedanceapp.service.RegistrationAccessValidator
+import com.example.bedanceapp.service.validation.RegistrationAccessValidator
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime

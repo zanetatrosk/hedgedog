@@ -2,6 +2,7 @@ package com.example.bedanceapp.config
 
 import com.example.bedanceapp.service.JwtService
 import com.example.bedanceapp.repository.UserRepository
+import com.nimbusds.oauth2.sdk.http.HTTPResponse.SC_UNAUTHORIZED
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -26,28 +27,43 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        try {
-            val jwt = getJwtFromRequest(request)
+        val jwt = getJwtFromRequest(request)
 
-            if (jwt != null && jwtService.validateToken(jwt)) {
+        if (jwt != null) {
+            try {
+                if (!jwtService.validateToken(jwt)) {
+                    unauthorized(response)
+                    return
+                }
+
                 val userId = jwtService.getUserIdFromToken(jwt)
                 val user = userRepository.findById(userId).orElse(null)
 
-                if (user != null) {
-                    val authentication = UsernamePasswordAuthenticationToken(
-                        user,
-                        null,
-                        emptyList()
-                    )
-                    authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
-                    SecurityContextHolder.getContext().authentication = authentication
+                if (user == null) {
+                    unauthorized(response)
+                    return
                 }
+
+                val authentication = UsernamePasswordAuthenticationToken(
+                    user,
+                    null,
+                    emptyList()
+                )
+                authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
+                SecurityContextHolder.getContext().authentication = authentication
+            } catch (e: Exception) {
+                logger.error("Could not set user authentication in security context", e)
+                unauthorized(response)
+                return
             }
-        } catch (e: Exception) {
-            logger.error("Could not set user authentication in security context", e)
         }
 
         filterChain.doFilter(request, response)
+    }
+
+    private fun unauthorized(response: HttpServletResponse) {
+        SecurityContextHolder.clearContext()
+        response.sendError(SC_UNAUTHORIZED, "Unauthorized")
     }
 
     private fun getJwtFromRequest(request: HttpServletRequest): String? {

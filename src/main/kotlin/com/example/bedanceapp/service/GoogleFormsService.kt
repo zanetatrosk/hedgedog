@@ -21,9 +21,6 @@ class GoogleFormsService(
     private val userRepository: UserRepository,
     private val googleOAuth2Service: GoogleOAuth2Service
 ) {
-
-    private val logger = LoggerFactory.getLogger(GoogleFormsService::class.java)
-
     private val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val jsonFactory = GsonFactory.getDefaultInstance()
 
@@ -51,9 +48,7 @@ class GoogleFormsService(
             .build()
     }
 
-    /**
-     * Get a specific form by ID
-     */
+
     fun getForm(user: User, formId: String): Form {
         if (!hasFormsAccess(user)) {
             throw IllegalStateException("User has not granted Google Forms access")
@@ -63,9 +58,6 @@ class GoogleFormsService(
         return formsService.forms().get(formId).execute()
     }
 
-    /**
-     * Get form responses
-     */
     fun getFormResponses(user: User, formId: String): ListFormResponsesResponse {
         if (!hasFormsAccess(user)) {
             throw IllegalStateException("User has not granted Google Forms access")

@@ -8,8 +8,8 @@ import com.example.bedanceapp.model.RegistrationAction
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
 import com.example.bedanceapp.repository.EventRepository
-import com.example.bedanceapp.service.EventAccessValidator
-import com.example.bedanceapp.service.RegistrationAccessValidator
+import com.example.bedanceapp.service.validation.EventAccessValidator
+import com.example.bedanceapp.service.validation.RegistrationAccessValidator
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -18,7 +18,6 @@ import java.util.UUID
 @Service
 class OrganizerRegistrationService(
     private val eventRegistrationRepository: EventRegistrationRepository,
-    private val eventRepository: EventRepository,
     private val registrationStatusService: RegistrationStatusService,
     private val registrationRecalculateService: RegistrationRecalculateService,
     private val googleFormSyncService: GoogleFormSyncService,
@@ -86,9 +85,6 @@ class OrganizerRegistrationService(
         return savedRegistration
     }
 
-    /**
-     * Sync event registration form structure with Google Forms.
-     */
     fun syncGoogleFormData(eventId: UUID, organizerId: UUID) {
         val event = eventAccessValidator.requireOwnedEvent(eventId, organizerId)
         googleFormSyncService.syncRegistrationData(eventId, organizerId, event.maxAttendees)

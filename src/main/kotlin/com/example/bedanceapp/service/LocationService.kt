@@ -11,8 +11,7 @@ class LocationService(
     private val locationRepository: LocationRepository
 ) {
     /**
-     * Find or create a location based on address details.
-     * This helps avoid duplicate locations when creating events.
+     * create a location based on address details.
      */
     @Transactional
     fun createLocation(
@@ -25,8 +24,6 @@ class LocationService(
         state: String?,
         county: String? = null
     ): Location {
-        // For now, always create a new location
-        // You could add logic to find existing locations by matching address fields
         val location = Location(
             name = name,
             street = street,

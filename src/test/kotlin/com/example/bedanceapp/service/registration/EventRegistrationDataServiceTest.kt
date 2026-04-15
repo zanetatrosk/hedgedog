@@ -7,7 +7,7 @@ import com.example.bedanceapp.model.RecurringDateInfo
 import com.example.bedanceapp.model.RegistrationMode
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.repository.EventRegistrationSettingsRepository
-import com.example.bedanceapp.repository.EventRepository
+import com.example.bedanceapp.service.validation.EventAccessValidator
 import com.example.bedanceapp.service.event.EventService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -22,14 +22,13 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.util.Optional
 import java.util.UUID
 import kotlin.test.assertEquals
 
 @DisplayName("EventRegistrationDataService Tests")
 class EventRegistrationDataServiceTest {
 
-    @Mock private lateinit var eventRepository: EventRepository
+    @Mock private lateinit var eventAccessValidator: EventAccessValidator
     @Mock private lateinit var eventService: EventService
     @Mock private lateinit var registrationStrategyFactory: RegistrationStrategyFactory
     @Mock private lateinit var eventRegistrationSettingsRepository: EventRegistrationSettingsRepository
@@ -39,12 +38,13 @@ class EventRegistrationDataServiceTest {
 
     private val eventId = UUID.randomUUID()
     private val parentEventId = UUID.randomUUID()
+    private val userId = UUID.randomUUID()
 
     @BeforeEach
     fun setUp() {
         MockitoAnnotations.openMocks(this)
         service = EventRegistrationDataService(
-            eventRepository,
+            eventAccessValidator,
             eventService,
             registrationStrategyFactory,
             eventRegistrationSettingsRepository
@@ -57,13 +57,13 @@ class EventRegistrationDataServiceTest {
         val registrationData = RegistrationData(headers = emptyList(), registrations = emptyList())
         val recurring = listOf(RecurringDateInfo(date = "2026-04-20", id = UUID.randomUUID().toString()))
 
-        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(eventAccessValidator.requireOwnedEvent(eventId, userId)).thenReturn(event)
         whenever(eventRegistrationSettingsRepository.findByEventId(eventId)).thenReturn(null)
         whenever(registrationStrategyFactory.getStrategy(RegistrationMode.OPEN)).thenReturn(strategy)
         whenever(strategy.getRegistrationData(event)).thenReturn(registrationData)
-        whenever(eventService.getUpcomingDates(parentEventId)).thenReturn(recurring)
+        whenever(eventService.getUpcomingDates(parentEventId, true)).thenReturn(recurring)
 
-        val response = service.getAllRegistrationsByEvent(eventId)
+        val response = service.getAllRegistrationsByEvent(eventId, userId)
 
         assertEquals(eventId, response.eventId)
         assertEquals("Event", response.eventName)
@@ -71,6 +71,7 @@ class EventRegistrationDataServiceTest {
         assertEquals(RegistrationMode.OPEN, response.registrationMode)
         assertEquals(registrationData, response.registrationData)
         assertEquals(recurring, response.recurringDates)
+        verify(eventService).getUpcomingDates(parentEventId, true)
         verify(registrationStrategyFactory).getStrategy(eq(RegistrationMode.OPEN))
     }
 
@@ -87,24 +88,28 @@ class EventRegistrationDataServiceTest {
             requireApproval = false
         )
 
-        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(eventAccessValidator.requireOwnedEvent(eventId, userId)).thenReturn(event)
         whenever(eventRegistrationSettingsRepository.findByEventId(eventId)).thenReturn(settings)
         whenever(registrationStrategyFactory.getStrategy(RegistrationMode.COUPLE)).thenReturn(strategy)
         whenever(strategy.getRegistrationData(event)).thenReturn(registrationData)
-        whenever(eventService.getUpcomingDates(parentEventId)).thenReturn(emptyList())
+        whenever(eventService.getUpcomingDates(parentEventId, true)).thenReturn(emptyList())
 
-        val response = service.getAllRegistrationsByEvent(eventId)
+        val response = service.getAllRegistrationsByEvent(eventId, userId)
 
         assertEquals(RegistrationMode.COUPLE, response.registrationMode)
+        assertEquals(registrationData, response.registrationData)
+        verify(eventService).getUpcomingDates(parentEventId, true)
         verify(registrationStrategyFactory).getStrategy(eq(RegistrationMode.COUPLE))
     }
 
     @Test
     fun `getAllRegistrationsByEvent throws when event not found`() {
-        whenever(eventRepository.findById(eventId)).thenReturn(Optional.empty())
+        whenever(eventAccessValidator.requireOwnedEvent(eventId, userId)).thenThrow(
+            IllegalArgumentException("Event not found with id: $eventId")
+        )
 
         assertThrows<IllegalArgumentException> {
-            service.getAllRegistrationsByEvent(eventId)
+            service.getAllRegistrationsByEvent(eventId, userId)
         }
     }
 
@@ -137,4 +142,3 @@ class EventRegistrationDataServiceTest {
         )
     }
 }
-

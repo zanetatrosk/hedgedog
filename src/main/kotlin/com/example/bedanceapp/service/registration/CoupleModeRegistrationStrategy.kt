@@ -9,12 +9,6 @@ import org.springframework.stereotype.Component
 /**
  * Strategy for COUPLE registration mode
  * Extends OpenModeRegistrationStrategy and adds role selection and future partner matching/coupling features
- *
- * Why extend instead of duplicate?
- * - Couple mode is essentially Open mode + role functionality
- * - Follows DRY principle - reuses all the common mapping logic
- * - Only overrides what's different: headers and the role data field
- * - Makes it easy to maintain - changes to common logic only need to be made once
  */
 @Component
 class CoupleModeRegistrationStrategy(
@@ -23,10 +17,6 @@ class CoupleModeRegistrationStrategy(
     private val dancerRoleRepository: DancerRoleRepository
 ) : OpenModeRegistrationStrategy(eventRegistrationRepository, skillLevelRepository) {
 
-    /**
-     * Override to add role header for couple mode
-     * Calls parent to get base headers and inserts role header before the last item (UPDATED_AT)
-     */
     override fun getHeaders(): List<Header> {
         val baseHeaders = super.getHeaders()
         val dancerRoles = dancerRoleRepository.findAll()
@@ -35,10 +25,6 @@ class CoupleModeRegistrationStrategy(
         return baseHeaders.dropLast(1) + CoupleHeaders.role(dancerRoles) + baseHeaders.last()
     }
 
-    /**
-     * Override to add role data field
-     * Calls parent to get base data fields and inserts role data before the last item (UPDATED_AT)
-     */
     override fun buildDataFields(registration: EventRegistration, fullName: String): List<RegistrationDataDto> {
         val baseDataFields = super.buildDataFields(registration, fullName)
         val roleData = RegistrationDataDto(CoupleHeaders.ROLE_ID, registration.role?.name ?: "")

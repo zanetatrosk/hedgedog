@@ -5,6 +5,7 @@
 -- LOOKUP DATA
 -- =====================================================
 INSERT INTO skill_levels (id, name, level_order) VALUES
+    (gen_random_uuid(), 'Open', -1),
     (gen_random_uuid(), 'Beginner', 0),
     (gen_random_uuid(), 'Intermediate', 1),
     (gen_random_uuid(), 'Advanced', 2),
@@ -12,7 +13,13 @@ INSERT INTO skill_levels (id, name, level_order) VALUES
 
 INSERT INTO dance_styles (id, name) VALUES
     (gen_random_uuid(), 'Bachata'),
+    (gen_random_uuid(), 'Bachata Dominicana'),
+    (gen_random_uuid(), 'Bachata Sensual'),
+    (gen_random_uuid(), 'Bachazouk'),
+    (gen_random_uuid(), 'Bachaton'),
     (gen_random_uuid(), 'Salsa'),
+    (gen_random_uuid(), 'Salsa Cuban'),
+    (gen_random_uuid(), 'Salsa Linear'),
     (gen_random_uuid(), 'Kizomba'),
     (gen_random_uuid(), 'Zouk'),
     (gen_random_uuid(), 'Tango'),
@@ -130,8 +137,8 @@ BEGIN
         CURRENT_DATE + INTERVAL '3 days', '20:00', 'PUBLISHED', 2
     ) RETURNING id INTO v_event_open_limited;
 
-    INSERT INTO event_registration_settings (event_id, registration_mode, allow_waitlist, require_approval)
-    VALUES (v_event_open_limited, 'OPEN', true, false);
+    INSERT INTO event_registration_settings (event_id, registration_mode, require_approval)
+    VALUES (v_event_open_limited, 'OPEN', false);
 
     INSERT INTO dance_styles_events (dance_style_id, event_id) VALUES (v_style_bachata, v_event_open_limited);
     INSERT INTO events_event_types (event_id, event_type_id) VALUES (v_event_open_limited, v_type_party);
@@ -155,8 +162,8 @@ BEGIN
         CURRENT_DATE + INTERVAL '7 days', '19:00', 'PUBLISHED', 4
     ) RETURNING id INTO v_event_couple_limited;
 
-    INSERT INTO event_registration_settings (event_id, registration_mode, allow_waitlist, require_approval)
-    VALUES (v_event_couple_limited, 'COUPLE', true, false);
+    INSERT INTO event_registration_settings (event_id, registration_mode, require_approval)
+    VALUES (v_event_couple_limited, 'COUPLE', false);
 
     INSERT INTO dance_styles_events (dance_style_id, event_id) VALUES (v_style_salsa, v_event_couple_limited);
     INSERT INTO events_event_types (event_id, event_type_id) VALUES (v_event_couple_limited, v_type_class);
@@ -184,8 +191,8 @@ BEGIN
         CURRENT_DATE + INTERVAL '10 days', '18:30', 'PUBLISHED', 3
     ) RETURNING id INTO v_event_approval;
 
-    INSERT INTO event_registration_settings (event_id, registration_mode, allow_waitlist, require_approval)
-    VALUES (v_event_approval, 'OPEN', true, true);
+    INSERT INTO event_registration_settings (event_id, registration_mode, require_approval)
+    VALUES (v_event_approval, 'OPEN', true);
 
     INSERT INTO dance_styles_events (dance_style_id, event_id) VALUES (v_style_salsa, v_event_approval);
     INSERT INTO events_event_types (event_id, event_type_id) VALUES (v_event_approval, v_type_class);

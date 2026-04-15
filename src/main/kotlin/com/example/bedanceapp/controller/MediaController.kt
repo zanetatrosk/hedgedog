@@ -10,12 +10,6 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.util.UUID
 
-/**
- * Media Controller
- * 
- * Handles media (image and video) operations including uploading, streaming,
- * and deletion. Media files are associated with events and owned by users.
- */
 @RestController
 @CrossOrigin(origins = ["http://localhost:3000", "http://10.0.0.67:3000/"])
 @RequestMapping("/api/media")

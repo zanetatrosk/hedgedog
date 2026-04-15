@@ -38,7 +38,7 @@ class UserEventService(
         val organizedIds = eventRepository.findByOrganizerId(userId).mapNotNull { it.id }.toSet()
         val userStatusMap = registrations.associateBy { it.eventId }
 
-        // 2. Filter IDs (Business Logic)
+        // 2. Filter IDs
         val eventIdsToInclude = when (filter) {
             StatusFilter.HOSTING -> organizedIds.toList()
             StatusFilter.JOINED -> registrations.filter { it.status != RegistrationStatus.INTERESTED && it.eventId !in organizedIds }.map { it.eventId }

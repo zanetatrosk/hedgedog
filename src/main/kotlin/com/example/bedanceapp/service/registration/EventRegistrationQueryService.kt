@@ -11,10 +11,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
-/**
- * Service responsible for event registration statistics and analytics
- * Handles counting and aggregating registration data
- */
 @Service
 class EventRegistrationQueryService(
     private val eventRegistrationRepository: EventRegistrationRepository,

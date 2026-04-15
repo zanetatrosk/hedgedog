@@ -5,6 +5,7 @@ import com.example.bedanceapp.service.user.UserEventService
 import com.example.bedanceapp.service.user.UserService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
@@ -38,8 +39,12 @@ class UserController(
         @RequestParam(required = false) filter: StatusFilter?,
         @RequestParam(required = false) timeline: EventTimeline?,
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "10") size: Int,
+        @AuthenticationPrincipal user: User
     ): ResponseEntity<PagedResponse<MyEvent>> {
+        if( user.id != userId ){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
         val pagedResponse = userEventService.getUserEventsPaginated(userId, filter, timeline, page, size)
         return ResponseEntity.ok(pagedResponse)
     }
@@ -71,8 +76,12 @@ class UserController(
     @PutMapping("/{userId}")
     fun updateUserProfile(
         @PathVariable userId: UUID,
-        @RequestBody request: UserProfileDto
+        @RequestBody request: UserProfileDto,
+        @AuthenticationPrincipal user: User
     ): ResponseEntity<UserProfileDto> {
+        if( user.id != userId ){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
         return try {
             val profileData = userService.updateProfileData(userId, request)
             ResponseEntity.ok(profileData)

@@ -4,6 +4,7 @@ import com.example.bedanceapp.model.Event
 import com.example.bedanceapp.model.EventStatus
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.repository.EventRepository
+import com.example.bedanceapp.service.validation.EventAccessValidator
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test

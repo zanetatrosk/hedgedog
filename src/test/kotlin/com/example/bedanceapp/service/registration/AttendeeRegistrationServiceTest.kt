@@ -10,7 +10,7 @@ import com.example.bedanceapp.repository.DancerRoleRepository
 import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.EventRepository
 import com.example.bedanceapp.repository.UserRepository
-import com.example.bedanceapp.service.RegistrationAccessValidator
+import com.example.bedanceapp.service.validation.RegistrationAccessValidator
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -89,9 +89,10 @@ class AttendeeRegistrationServiceTest {
     }
 
     @Test
-    fun `registerUserForEvent creates registration and uses provided email`() {
+    fun `registerUserForEvent creates registration and uses user email`() {
         val event = createEvent(maxAttendees = 20)
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(createUser(userId, "from-db@example.com")))
         whenever(eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)).thenReturn(emptyList())
         whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)).thenReturn(emptyList())
         whenever(registrationStatusService.assignRegistrationStatus(
@@ -107,12 +108,11 @@ class AttendeeRegistrationServiceTest {
             userId = userId,
             status = RegistrationStatus.REGISTERED,
             roleId = null,
-            email = "provided@example.com",
             isAnonymous = true
         )
 
         assertEquals(RegistrationStatus.REGISTERED, saved.status)
-        assertEquals("provided@example.com", saved.email)
+        assertEquals("from-db@example.com", saved.email)
         assertNull(saved.roleId)
         assertNull(saved.waitlistedAt)
     }
@@ -141,7 +141,6 @@ class AttendeeRegistrationServiceTest {
             userId = userId,
             status = RegistrationStatus.REGISTERED,
             roleId = roleId,
-            email = null,
             isAnonymous = false
         )
 
@@ -161,7 +160,6 @@ class AttendeeRegistrationServiceTest {
                 userId = userId,
                 status = RegistrationStatus.REGISTERED,
                 roleId = null,
-                email = "user@example.com",
                 isAnonymous = false
             )
         }
@@ -178,7 +176,6 @@ class AttendeeRegistrationServiceTest {
                 userId = userId,
                 status = RegistrationStatus.WAITLISTED,
                 roleId = null,
-                email = "user@example.com",
                 isAnonymous = false
             )
         }
@@ -190,6 +187,7 @@ class AttendeeRegistrationServiceTest {
         val existing = createRegistration(status = RegistrationStatus.REJECTED)
 
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(createUser(userId, "from-db@example.com")))
         whenever(eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)).thenReturn(listOf(existing))
         whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)).thenReturn(emptyList())
         whenever(registrationStatusService.assignRegistrationStatus(
@@ -206,7 +204,6 @@ class AttendeeRegistrationServiceTest {
                 userId = userId,
                 status = RegistrationStatus.REGISTERED,
                 roleId = null,
-                email = "user@example.com",
                 isAnonymous = false
             )
         }
@@ -220,6 +217,7 @@ class AttendeeRegistrationServiceTest {
         val existing = createRegistration(status = RegistrationStatus.CANCELLED)
 
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(createUser(userId, "from-db@example.com")))
         whenever(eventRegistrationRepository.findByEventIdAndUserId(eventId, userId)).thenReturn(listOf(existing))
         whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(eventId)).thenReturn(emptyList())
         whenever(registrationStatusService.assignRegistrationStatus(
@@ -236,7 +234,6 @@ class AttendeeRegistrationServiceTest {
                 userId = userId,
                 status = RegistrationStatus.INTERESTED,
                 roleId = null,
-                email = "user@example.com",
                 isAnonymous = false
             )
         }

@@ -5,7 +5,7 @@ package com.example.bedanceapp.model
  */
 data class AppSummaryDto(
     val totalDancers: Long,  // Total number of registered users with profiles
-    val totalRegistrations: Long,  // Total number of event registrations
+    val totalRegistrations: Int,  // Total number of event registrations
     val totalEvents: Int  // Total number of events
 )
 
