@@ -71,7 +71,7 @@ class OrganizerEventService(
             "Form ID must be provided when using GOOGLE_FORM registration mode."
         }
 
-        require(registrationMode != RegistrationMode.COUPLE || event.maxAttendees?.rem(2) == 0) {
+        require(registrationMode != RegistrationMode.COUPLE || (event.maxAttendees == null || event.maxAttendees?.rem(2) == 0)) {
             "You cannot have odd number of capacity for couple event, please change capacity to even number"
         }
 
@@ -131,7 +131,7 @@ class OrganizerEventService(
                     "Please cancel some attendees before lowering the limit."
         }
 
-        require(settings?.registrationMode == RegistrationMode.COUPLE || newMax % 2 == 0) {
+        require(settings?.registrationMode != RegistrationMode.COUPLE || (newMax % 2 == 0)) {
             "You cannot have odd capacity for couple event"
         }
 

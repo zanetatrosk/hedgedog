@@ -124,9 +124,9 @@ BEGIN
 
     -- locations
     INSERT INTO locations (name, street, house_number, city, country) VALUES
-        ('Prague Salsa Studio', 'Main Street', '10', 'Prague', 'Czech Republic') RETURNING id INTO v_loc_prague_studio;
+        ('Prague Salsa Studio', 'Main Street', '10', 'Prague', 'Czechia') RETURNING id INTO v_loc_prague_studio;
     INSERT INTO locations (name, street, house_number, city, country) VALUES
-        ('Brno Dance Club', 'River Road', '5', 'Brno', 'Czech Republic') RETURNING id INTO v_loc_brno_club;
+        ('Brno Dance Club', 'River Road', '5', 'Brno', 'Czechia') RETURNING id INTO v_loc_brno_club;
 
     -- event 1: open mode with limited capacity and waitlist
     INSERT INTO events (

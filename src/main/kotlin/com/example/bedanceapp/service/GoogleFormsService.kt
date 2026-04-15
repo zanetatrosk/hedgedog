@@ -7,6 +7,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.forms.v1.Forms
 import com.google.api.services.forms.v1.model.Form
+import com.google.api.services.forms.v1.model.FormResponse
 import com.google.api.services.forms.v1.model.ListFormResponsesResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -58,13 +59,13 @@ class GoogleFormsService(
         return formsService.forms().get(formId).execute()
     }
 
-    fun getFormResponses(user: User, formId: String): ListFormResponsesResponse {
+    fun getFormResponses(user: User, formId: String): List<FormResponse> {
         if (!hasFormsAccess(user)) {
             throw IllegalStateException("User has not granted Google Forms access")
         }
 
         val formsService = getFormsService(user)
-        return formsService.forms().responses().list(formId).execute()
+        return formsService.forms().responses().list(formId).execute().responses.sortedBy { it.createTime }
     }
 
     private fun isTokenExpired(user: User): Boolean {

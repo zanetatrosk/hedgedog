@@ -97,18 +97,18 @@ class AttendeeRegistrationService(
         val registrationToCancel = registrationAccessValidator.requireForUserInEvent(registrationId, eventId, userId)
 
         registrationToCancel.status.requireTransitionTo(RegistrationStatus.CANCELLED)
-
-        event.maxAttendees?.let { maxAttendees ->
-            registrationRecalculateService.recalculate(eventId, maxAttendees)
-        }
-
-        return eventRegistrationRepository.save(
+        val registration = eventRegistrationRepository.save(
             registrationToCancel.copy(
                 status = RegistrationStatus.CANCELLED,
                 updatedAt = LocalDateTime.now(),
                 waitlistedAt = null
             )
         )
+
+        event.maxAttendees?.let { maxAttendees ->
+            registrationRecalculateService.recalculate(eventId, maxAttendees)
+        }
+        return registration
     }
 
     private fun getPublishedEvent(eventId: UUID): Event {

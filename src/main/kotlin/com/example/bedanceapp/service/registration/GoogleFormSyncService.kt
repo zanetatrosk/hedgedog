@@ -37,7 +37,7 @@ class GoogleFormSyncService(
         val organizer = userRepository.findById(organizerId).orElseThrow { IllegalArgumentException("Organizer not found with id: $organizerId") }
         logger.info("Fetching Google Form metadata for formId: $formId")
         val form = googleFormsService.getForm(organizer, formId)
-        val responses = googleFormsService.getFormResponses(organizer, formId).responses ?: emptyList()
+        val responses = googleFormsService.getFormResponses(organizer, formId)
 
         transactionTemplate.executeWithoutResult {
             saveSyncData(eventId, maxAttendees, form, responses)
