@@ -11,6 +11,3 @@ data class UserProfileDto(
     val avatar: EventMedia? = null,
 )
 
-@Deprecated("Use UserProfileDto", ReplaceWith("UserProfileDto"))
-typealias ProfileData = UserProfileDto
-

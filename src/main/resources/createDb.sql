@@ -208,8 +208,7 @@ ALTER TABLE events_event_types ADD CONSTRAINT pk_events_event_types PRIMARY KEY 
 
 CREATE TABLE events_media (
     event_id UUID NOT NULL,
-    media_id UUID NOT NULL,
-    display_order INTEGER DEFAULT 0
+    media_id UUID NOT NULL
 );
 ALTER TABLE events_media ADD CONSTRAINT pk_events_media PRIMARY KEY (event_id, media_id);
 

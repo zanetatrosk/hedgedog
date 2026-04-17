@@ -45,7 +45,7 @@ class EventService(
         val event = eventRepository.findById(eventId)
             .orElseThrow { IllegalArgumentException("Event not found with id: $eventId") }
         val isUserOrganizer = event.organizerId == userId
-        require(event.status == EventStatus.PUBLISHED || isUserOrganizer){
+        require(event.status != EventStatus.DRAFT || isUserOrganizer){
             "Event not found with id: $eventId"
         }
         val parentEventId = event.parentEventId
