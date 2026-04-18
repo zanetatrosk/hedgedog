@@ -1,6 +1,7 @@
 package com.example.bedanceapp.service.mapping
 
 import com.example.bedanceapp.model.EventRegistration
+import com.example.bedanceapp.model.EventRegistrationActionResultDto
 import com.example.bedanceapp.model.EventRegistrationDto
 import com.example.bedanceapp.model.RegistrationUserDto
 import com.example.bedanceapp.model.User
@@ -12,6 +13,22 @@ class EventRegistrationMapper(
     private val userRepository: UserRepository,
     private val userMapper: UserMapper
 ) {
+    fun toActionResultList(registrations: List<EventRegistration>): List<EventRegistrationActionResultDto> {
+        return registrations.map { toActionResult(it) }
+    }
+
+    fun toActionResult(registration: EventRegistration): EventRegistrationActionResultDto {
+        return EventRegistrationActionResultDto(
+            registrationId = requireNotNull(registration.id) { "Registration ID is missing" },
+            eventId = registration.eventId,
+            userId = registration.userId,
+            status = registration.status,
+            roleId = registration.roleId,
+            waitlistedAt = registration.waitlistedAt,
+            updatedAt = registration.updatedAt
+        )
+    }
+
     fun toDtoList(registrations: List<EventRegistration>): List<EventRegistrationDto> {
         return registrations.map { toDto(it) }
     }

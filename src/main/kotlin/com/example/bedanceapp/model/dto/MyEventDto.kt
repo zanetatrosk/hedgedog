@@ -23,6 +23,7 @@ data class SingleEventDTO(
     val status: EventStatus,
     val role: CodebookItem? = null,
     val date: String,
+    val endDate: String? = null,
     val time: String,
     val location: LocationRequest?,
     val attendeeStats: AttendeeStats

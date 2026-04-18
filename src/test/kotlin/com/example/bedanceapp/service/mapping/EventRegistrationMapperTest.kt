@@ -84,6 +84,21 @@ class EventRegistrationMapperTest {
         assertEquals(second.id.toString(), list[1].registrationId)
     }
 
+    @Test
+    fun `toActionResult maps flat registration fields`() {
+        val registration = createRegistration(userId = UUID.randomUUID(), isAnonymous = false)
+
+        val dto = mapper.toActionResult(registration)
+
+        assertEquals(registration.id, dto.registrationId)
+        assertEquals(registration.eventId, dto.eventId)
+        assertEquals(registration.userId, dto.userId)
+        assertEquals(registration.status, dto.status)
+        assertEquals(registration.roleId, dto.roleId)
+        assertEquals(registration.waitlistedAt, dto.waitlistedAt)
+        assertEquals(registration.updatedAt, dto.updatedAt)
+    }
+
     private fun createRegistration(userId: UUID, isAnonymous: Boolean): EventRegistration {
         return EventRegistration(
             id = UUID.randomUUID(),

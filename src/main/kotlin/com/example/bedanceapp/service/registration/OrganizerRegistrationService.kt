@@ -92,7 +92,6 @@ class OrganizerRegistrationService(
 
     private fun resolveApprovedStatus(registration: EventRegistration, maxAttendees: Int?): RegistrationStatus {
         val registrations = eventRegistrationRepository.findByEventIdOrderByCreatedAt(registration.eventId)
-            .filter { it.id != registration.id }
         val settings = eventRegistrationSettingsRepository.findByEventId(registration.eventId)
 
         return registrationStatusService.resolveApprovedStatus(

@@ -38,7 +38,6 @@ import kotlin.test.assertEquals
 class EventServiceTest {
 
     @Mock private lateinit var eventRepository: EventRepository
-    @Mock private lateinit var createEventService: CreateEventService
     @Mock private lateinit var eventMapper: EventMapper
 
     private lateinit var service: EventService
@@ -46,7 +45,7 @@ class EventServiceTest {
     @BeforeEach
     fun setUp() {
         MockitoAnnotations.openMocks(this)
-        service = EventService(eventRepository, createEventService, eventMapper)
+        service = EventService(eventRepository, eventMapper)
     }
 
     @Test

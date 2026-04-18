@@ -13,7 +13,6 @@ import java.util.UUID
 @Service
 class EventService(
     private val eventRepository: EventRepository,
-    private val createEventService: CreateEventService,
     private val eventMapper: EventMapper
 ) {
 

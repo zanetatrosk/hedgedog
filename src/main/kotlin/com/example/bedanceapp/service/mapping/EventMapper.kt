@@ -120,6 +120,7 @@ class EventMapper(
             userStatus = registration?.status,
             role = registration?.role?.toCodebook(),
             date = event.eventDate.toString(),
+            endDate = event.endDate?.toString(),
             time = event.eventTime.toString(),
             location = event.location.toLocationDto(),
             attendeeStats = AttendeeStats(

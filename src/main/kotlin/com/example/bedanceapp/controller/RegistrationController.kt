@@ -1,6 +1,6 @@
 package com.example.bedanceapp.controller
 
-import com.example.bedanceapp.model.EventRegistration
+import com.example.bedanceapp.model.EventRegistrationActionResultDto
 import com.example.bedanceapp.model.EventRegistrationDto
 import com.example.bedanceapp.model.RegistrationAction
 import com.example.bedanceapp.model.RegistrationActionRequest
@@ -11,6 +11,7 @@ import com.example.bedanceapp.service.registration.EventRegistrationDataService
 import com.example.bedanceapp.service.registration.EventRegistrationQueryService
 import com.example.bedanceapp.service.registration.OrganizerRegistrationService
 import com.example.bedanceapp.service.registration.StatsResponse
+import com.example.bedanceapp.service.mapping.EventRegistrationMapper
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -30,7 +31,8 @@ class RegistrationController(
     private val attendeeRegistrationService: AttendeeRegistrationService,
     private val organizerRegistrationService: OrganizerRegistrationService,
     private val eventRegistrationDataService: EventRegistrationDataService,
-    private val eventRegistrationQueryService: EventRegistrationQueryService
+    private val eventRegistrationQueryService: EventRegistrationQueryService,
+    private val eventRegistrationMapper: EventRegistrationMapper
 ) {
 
     /**
@@ -80,7 +82,7 @@ class RegistrationController(
         @PathVariable eventId: UUID,
         @AuthenticationPrincipal user: User,
         @RequestBody request: RegisterEventRequest
-    ): ResponseEntity<EventRegistration> {
+    ): ResponseEntity<EventRegistrationActionResultDto> {
         val userId = requireNotNull(user.id) { "Authenticated user ID is missing" }
         val registration = attendeeRegistrationService.registerUserForEvent(
             eventId = eventId,
@@ -89,7 +91,7 @@ class RegistrationController(
             roleId = request.roleId,
             isAnonymous = request.isAnonymous,
         )
-        return ResponseEntity.ok(registration)
+        return ResponseEntity.ok(eventRegistrationMapper.toActionResult(registration))
     }
 
     /**
@@ -150,28 +152,31 @@ class RegistrationController(
      * Users can cancel their own registrations.
      * 
      * @param eventId The ID of the event
-     * @param registrationId The ID of the registration to update
      * @param user Currently authenticated user
-     * @param request Action request specifying approve, reject, or cancel
+     * @param request Action request specifying approve, reject, or cancel with the regitsrations ids to be updated
      * @return Updated event registration
      */
-    @PatchMapping("/{eventId}/registrations/{registrationId}")
+    @PatchMapping("/{eventId}/registrations")
     fun updateRegistrationStatus(
         @PathVariable eventId: UUID,
-        @PathVariable registrationId: UUID,
         @AuthenticationPrincipal user: User,
         @RequestBody request: RegistrationActionRequest
-    ): ResponseEntity<EventRegistration> {
+    ): ResponseEntity<List<EventRegistrationActionResultDto>> {
         val userId = requireNotNull(user.id) { "Authenticated user ID is missing" }
+
         val updated = when (request.action) {
             RegistrationAction.APPROVE, RegistrationAction.REJECT ->
-                organizerRegistrationService.updateRegistrationStatus(eventId, registrationId, userId, request.action)
+                request.registrations.map { registrationId ->
+                    organizerRegistrationService.updateRegistrationStatus(eventId, registrationId, userId, request.action)
+                }
 
             RegistrationAction.CANCEL ->
-                attendeeRegistrationService.cancelRegistration(eventId, userId, registrationId)
+                request.registrations.map { registrationId ->
+                    attendeeRegistrationService.cancelRegistration(eventId, userId, registrationId)
+                }
         }
 
-        return ResponseEntity.ok(updated)
+        return ResponseEntity.ok(eventRegistrationMapper.toActionResultList(updated))
     }
 }
 

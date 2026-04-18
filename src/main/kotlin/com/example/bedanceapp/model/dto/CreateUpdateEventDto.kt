@@ -33,7 +33,6 @@ data class BasicInfoRequest(
     val location: LocationRequest?,
 
     @field:NotNull(message = "Start date is required")
-    @field:FutureOrPresent(message = "Start date must be today or in the future")
     val date: LocalDate, // Jackson automatically parses "YYYY-MM-DD"
 
     @field:NotNull(message = "Start time is required")

@@ -28,6 +28,11 @@ class CreateEventService(
         request: CreateUpdateEventDto,
         organizerId: UUID
     ): List<Event> {
+        // check startDate
+        require(!request.basicInfo.date.isBefore(LocalDate.now())) {
+            "Event start date cannot be in the past."
+        }
+
         // 1. Guard Clause: If not recurring, keep it simple
         if (request.basicInfo.isRecurring != true) {
             return listOf(eventAssembler.buildEventFromRequest(request, organizerId))

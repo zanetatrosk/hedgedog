@@ -85,7 +85,7 @@ class GoogleFormSyncServiceTest {
         whenever(userRepository.findById(organizerId)).thenReturn(Optional.of(organizer))
         whenever(googleFormsService.getForm(organizer, "form-1")).thenReturn(Form().setRevisionId("rev-2"))
         whenever(googleFormsService.getFormResponses(organizer, "form-1")).thenReturn(
-            ListFormResponsesResponse().setResponses(listOf(response))
+            listOf(response)
         )
 
         whenever(googleFormMapper.extractRevisionId("old-structure")).thenReturn("rev-1")
@@ -139,7 +139,7 @@ class GoogleFormSyncServiceTest {
         whenever(userRepository.findById(organizerId)).thenReturn(Optional.of(organizer))
         whenever(googleFormsService.getForm(organizer, "form-1")).thenReturn(Form().setRevisionId("rev-2"))
         whenever(googleFormsService.getFormResponses(organizer, "form-1")).thenReturn(
-            ListFormResponsesResponse().setResponses(listOf(response))
+            listOf(response)
         )
         whenever(googleFormMapper.extractRevisionId("same-revision")).thenReturn("rev-2")
 
@@ -189,7 +189,7 @@ class GoogleFormSyncServiceTest {
         whenever(userRepository.findById(organizerId)).thenReturn(Optional.of(organizer))
         whenever(googleFormsService.getForm(organizer, "form-1")).thenReturn(Form().setRevisionId("rev-2"))
         whenever(googleFormsService.getFormResponses(organizer, "form-1")).thenReturn(
-            ListFormResponsesResponse().setResponses(listOf(response))
+            listOf(response)
         )
         whenever(googleFormMapper.extractRevisionId("same-revision")).thenReturn("rev-2")
 

@@ -75,7 +75,7 @@ class UserEventService(
                 val parent = parentsMap[parentId] ?: return@mapNotNull null // Handle orphans by returning null
                 val sortedChildren = children.sortedWith(childComparator)
 
-                if (!matchesTimeline(sortedChildren.last().eventDate, timeline, today)) return@mapNotNull null
+                if (!matchesTimeline(sortedChildren.last().eventDate, null, timeline, today)) return@mapNotNull null
 
                 val anchor = seriesSortAnchor(sortedChildren, timeline, today)
                 val dto = SeriesEventDto(
@@ -91,7 +91,7 @@ class UserEventService(
 
         // Process Standalone (and Orphans)
         val standaloneResults = (standaloneEvents + findOrphans(seriesCandidates, parentsMap)).filter {
-            matchesTimeline(it.eventDate, timeline, today)
+            matchesTimeline(it.eventDate, it.endDate, timeline, today)
         }.map {
             SortableMyEvent(eventMapper.toSingleEventDto(it, statusMap[it.id]), it.eventDate, it.eventTime)
         }
@@ -108,11 +108,12 @@ class UserEventService(
     private fun findOrphans(seriesEvents: List<Event>, parentsMap: Map<UUID?, EventParent>) =
         seriesEvents.filter { !parentsMap.containsKey(it.parentEventId) }
 
-    private fun matchesTimeline(date: LocalDate, timeline: EventTimeline?, today: LocalDate) = when (timeline) {
-        EventTimeline.UPCOMING -> date >= today
-        EventTimeline.PAST -> date < today
-        null -> true
-    }
+    private fun matchesTimeline(date: LocalDate, endDate: LocalDate?, timeline: EventTimeline?, today: LocalDate) =
+        when (timeline) {
+            EventTimeline.UPCOMING -> (endDate ?: date) >= today   // includes ongoing
+            EventTimeline.PAST -> (endDate ?: date) < today        // only fully finished
+            null -> true
+        }
 
     private fun seriesSortAnchor(children: List<Event>, timeline: EventTimeline?, today: LocalDate) = when (timeline) {
         EventTimeline.PAST -> children.last() // Anchor by most recent occurrence in the past
