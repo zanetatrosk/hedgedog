@@ -71,7 +71,7 @@ class GoogleFormRegistrationStrategyTest {
 
         val result = strategy.getRegistrationData(createEvent(eventId))
 
-        assertEquals(1, result.headers.size)
+        assertEquals(3, result.headers.size)
         assertEquals(2, result.registrations.size)
         assertEquals("resp-1", result.registrations[0].id)
         assertEquals("resp-2", result.registrations[1].id)
