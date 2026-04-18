@@ -7,6 +7,8 @@ import com.example.bedanceapp.model.RegistrationUserDto
 import com.example.bedanceapp.model.User
 import com.example.bedanceapp.repository.UserRepository
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @Component
 class EventRegistrationMapper(
@@ -24,8 +26,8 @@ class EventRegistrationMapper(
             userId = registration.userId,
             status = registration.status,
             roleId = registration.roleId,
-            waitlistedAt = registration.waitlistedAt,
-            updatedAt = registration.updatedAt
+            waitlistedAt = registration.waitlistedAt?.let(::toUtcOffsetString),
+            updatedAt = toUtcOffsetString(registration.updatedAt)
         )
     }
 
@@ -58,6 +60,10 @@ class EventRegistrationMapper(
 
     private fun buildUserName(user: User): String {
         return "${user.profile?.firstName ?: ""} ${user.profile?.lastName ?: ""}".trim()
+    }
+
+    private fun toUtcOffsetString(value: LocalDateTime): String {
+        return value.atOffset(ZoneOffset.UTC).toString()
     }
 }
 

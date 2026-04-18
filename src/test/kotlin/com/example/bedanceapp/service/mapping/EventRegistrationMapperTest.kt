@@ -18,6 +18,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.ZoneOffset
 import java.util.Optional
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -95,8 +96,8 @@ class EventRegistrationMapperTest {
         assertEquals(registration.userId, dto.userId)
         assertEquals(registration.status, dto.status)
         assertEquals(registration.roleId, dto.roleId)
-        assertEquals(registration.waitlistedAt, dto.waitlistedAt)
-        assertEquals(registration.updatedAt, dto.updatedAt)
+        assertEquals(registration.waitlistedAt?.atOffset(ZoneOffset.UTC)?.toString(), dto.waitlistedAt)
+        assertEquals(registration.updatedAt.atOffset(ZoneOffset.UTC).toString(), dto.updatedAt)
     }
 
     private fun createRegistration(userId: UUID, isAnonymous: Boolean): EventRegistration {

@@ -8,6 +8,7 @@ import com.google.api.services.forms.v1.model.FormResponse
 import com.google.api.services.forms.v1.model.Item
 import org.springframework.stereotype.Component
 import tools.jackson.databind.ObjectMapper
+import java.time.ZoneOffset
 import java.util.UUID
 
 @Component
@@ -22,21 +23,23 @@ class GoogleFormMapper(
                 email = registration.email,
                 userId = registration.userId
             ),
-            data = parseRowStructure(registration.formResponses)?.data ?: emptyList(),
+            data = parseRowStructure(registration.formResponses)?.data?.plus(addLastUpdated(registration)) ?: emptyList(),
             status = registration.status
         )
     }
 
+    fun addLastUpdated(registration: EventRegistration): RegistrationDataDto {
+        val lastUpdated =registration.updatedAt.atOffset(ZoneOffset.UTC).toString()
+        return RegistrationDataDto(RegistrationHeaders.UPDATED_AT.id, lastUpdated)
+    }
+
+
     fun mapFormResponseToRegistrationRow(response: FormResponse, userId: UUID?): RegistrationRow? {
         val responseId = response.responseId ?: return null
         val answers = response.answers ?: return null
-        val email = response.respondentEmail ?: "unknown@example.com"
+        val email = response.respondentEmail
 
         val dataFields = mutableListOf<RegistrationDataDto>()
-
-        response.lastSubmittedTime?.let {
-            dataFields.add(RegistrationDataDto(GoogleFormHeaders.TIMESTAMP.id, it))
-        }
 
         answers.forEach { (questionId, answer) ->
             dataFields.add(RegistrationDataDto(questionId, extractAnswerText(answer)))
@@ -53,7 +56,6 @@ class GoogleFormMapper(
                 userId = userId
             ),
             data = dataFields,
-            lastSubmittedTime = response.lastSubmittedTime,
             status = RegistrationStatus.PENDING
         )
     }
@@ -68,8 +70,8 @@ class GoogleFormMapper(
 
     fun writeStructuredForm(structuredForm: StructuredForm): String = objectMapper.writeValueAsString(structuredForm)
 
-    fun writeRowStructure(row: RegistrationRow): String =
-        objectMapper.writeValueAsString(RowStructure(row.data, row.lastSubmittedTime))
+    fun writeRowStructure(row: RegistrationRow, lastSubmittedTime: String? = null): String =
+        objectMapper.writeValueAsString(RowStructure(row.data, lastSubmittedTime))
 
     fun parseFormStructure(formStructureJson: String?): StructuredForm? =
         formStructureJson.toObject(objectMapper, StructuredForm::class.java)
@@ -82,7 +84,6 @@ class GoogleFormMapper(
 
     private fun getDynamicHeaders(form: Form): List<Header> {
         val headers = mutableListOf<Header>()
-        headers.add(GoogleFormHeaders.TIMESTAMP)
         headers.add(GoogleFormHeaders.EMAIL)
 
         form.items?.forEach { item ->

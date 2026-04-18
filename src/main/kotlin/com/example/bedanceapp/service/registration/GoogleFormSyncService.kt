@@ -123,7 +123,7 @@ class GoogleFormSyncService(
                     email = registrationRow.user.email,
                     isAnonymous = true,
                     responseId = responseId,
-                    formResponses = googleFormMapper.writeRowStructure(registrationRow),
+                    formResponses = googleFormMapper.writeRowStructure(registrationRow, lastUpdated),
                     updatedAt = now,
                     waitlistedAt = RegistrationWaitlistTimestampResolver.resolve(
                         previousStatus = null,
@@ -173,7 +173,7 @@ class GoogleFormSyncService(
         if (shouldUpdate) {
             eventRegistrationRepository.save(
                 existingRegistration.copy(
-                    formResponses = googleFormMapper.writeRowStructure(registrationRow),
+                    formResponses = googleFormMapper.writeRowStructure(registrationRow, lastUpdated),
                     updatedAt = LocalDateTime.now()
                 )
             )

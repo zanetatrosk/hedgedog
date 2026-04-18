@@ -7,6 +7,7 @@ import com.example.bedanceapp.repository.EventRegistrationRepository
 import com.example.bedanceapp.repository.SkillLevelRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.ZoneOffset
 
 @Component
 open class OpenModeRegistrationStrategy(
@@ -64,7 +65,7 @@ open class OpenModeRegistrationStrategy(
             RegistrationDataDto(RegistrationHeaders.FULLNAME.id, fullName),
             RegistrationDataDto(RegistrationHeaders.EMAIL.id, registration.user?.email ?: ""),
             RegistrationDataDto(RegistrationHeaders.EXPERIENCE_ID, registration.user?.profile?.generalSkillLevel?.name ?: ""),
-            RegistrationDataDto(RegistrationHeaders.UPDATED_AT.id, registration.updatedAt.toString())
+            RegistrationDataDto(RegistrationHeaders.UPDATED_AT.id, registration.updatedAt.atOffset(ZoneOffset.UTC).toString())
         )
     }
 

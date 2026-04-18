@@ -22,6 +22,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.test.assertEquals
 
@@ -73,7 +74,7 @@ class OpenModeRegistrationStrategyTest {
         assertEquals("Ana Fox", row.data.first { it.id == RegistrationHeaders.FULLNAME.id }.value)
         assertEquals("dancer@example.com", row.data.first { it.id == RegistrationHeaders.EMAIL.id }.value)
         assertEquals("Intermediate", row.data.first { it.id == RegistrationHeaders.EXPERIENCE_ID }.value)
-        assertEquals(registration.updatedAt.toString(), row.data.first { it.id == RegistrationHeaders.UPDATED_AT.id }.value)
+        assertEquals(registration.updatedAt.atOffset(ZoneOffset.UTC).toString(), row.data.first { it.id == RegistrationHeaders.UPDATED_AT.id }.value)
 
         verify(eventRegistrationRepository).findByEventIdAndStatusNot(eq(eventId), eq(RegistrationStatus.INTERESTED))
     }

@@ -58,7 +58,6 @@ data class RegistrationRow(
     val id: String,
     val user: RegistrationUserDto,
     val data: List<RegistrationDataDto>,
-    val lastSubmittedTime: String? = null,
     val status: RegistrationStatus
 )
 
@@ -68,7 +67,7 @@ data class RowStructure (
 )
 
 data class RegistrationUserDto(
-    val email: String,
+    val email: String? = null,
     val userId: UUID? = null,
 )
 
@@ -136,7 +135,7 @@ object CoupleHeaders {
  * Headers specific to Google Forms mode
  */
 object GoogleFormHeaders {
-    val TIMESTAMP = TextHeader("timestamp", "Last updated")
+    val TIMESTAMP = TextHeader("timestamp", "Last submitted")
     val EMAIL = TextHeader("email", "Email Address")
 }
 

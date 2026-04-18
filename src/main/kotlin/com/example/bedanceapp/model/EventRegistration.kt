@@ -1,6 +1,5 @@
 package com.example.bedanceapp.model
 
-import com.example.bedanceapp.model.RegistrationStatus
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -45,8 +44,8 @@ data class EventRegistration(
     @JoinColumn(name = "role_id", insertable = false, updatable = false)
     val role: DancerRole? = null,
 
-    @Column(name = "email", nullable = false)
-    val email: String,
+    @Column(name = "email")
+    val email: String?,
 
     @Column(name = "is_anonymous", nullable = false)
     val isAnonymous: Boolean = false,

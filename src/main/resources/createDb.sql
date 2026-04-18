@@ -162,7 +162,7 @@ CREATE TABLE registrations (
     user_id UUID,
     role_id UUID,
     status VARCHAR(20) NOT NULL DEFAULT 'registered',
-    email VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
     is_anonymous BOOLEAN NOT NULL DEFAULT false,
     response_id varchar(255),
     form_responses JSONB,

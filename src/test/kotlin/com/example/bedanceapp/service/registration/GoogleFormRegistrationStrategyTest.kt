@@ -71,8 +71,7 @@ class GoogleFormRegistrationStrategyTest {
 
         val result = strategy.getRegistrationData(createEvent(eventId))
 
-        assertEquals(2, result.headers.size)
-        assertEquals("timestamp", result.headers[0].id)
+        assertEquals(1, result.headers.size)
         assertEquals(2, result.registrations.size)
         assertEquals("resp-1", result.registrations[0].id)
         assertEquals("resp-2", result.registrations[1].id)
@@ -88,7 +87,7 @@ class GoogleFormRegistrationStrategyTest {
 
         val result = strategy.getRegistrationData(createEvent(eventId))
 
-        assertEquals(emptyList(), result.headers)
+        assertEquals(listOf(RegistrationHeaders.UPDATED_AT), result.headers)
         assertEquals(emptyList(), result.registrations)
     }
 

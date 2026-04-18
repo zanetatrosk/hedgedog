@@ -79,7 +79,7 @@ class GoogleFormSyncServiceTest {
             .setResponseId("resp-1")
             .setRespondentEmail("dancer@example.com")
             .setLastSubmittedTime("2026-04-10T12:00:00Z")
-        val row = createRow(id = "resp-1", email = "dancer@example.com", userId = null, lastSubmittedTime = "2026-04-10T12:00:00Z")
+        val row = createRow(id = "resp-1", email = "dancer@example.com", userId = null)
 
         whenever(eventRegistrationSettingsRepository.findByEventId(eventId)).thenReturn(settings)
         whenever(userRepository.findById(organizerId)).thenReturn(Optional.of(organizer))
@@ -98,7 +98,7 @@ class GoogleFormSyncServiceTest {
         whenever(eventRegistrationRepository.findByEventId(eventId)).thenReturn(emptyList())
         whenever(registrationStatusService.assignRegistrationStatus(any(), eq(RegistrationStatus.REGISTERED), eq(eventId), anyOrNull(), anyOrNull()))
             .thenReturn(RegistrationStatus.REGISTERED)
-        whenever(googleFormMapper.writeRowStructure(row)).thenReturn("row-json")
+        whenever(googleFormMapper.writeRowStructure(row, "2026-04-10T12:00:00Z")).thenReturn("row-json")
 
         googleFormSyncService.syncRegistrationData(eventId, organizerId, 20)
 
@@ -122,7 +122,7 @@ class GoogleFormSyncServiceTest {
             .setResponseId("resp-2")
             .setRespondentEmail("dancer@example.com")
             .setLastSubmittedTime("2026-04-11T12:00:00Z")
-        val row = createRow(id = "resp-2", email = "dancer@example.com", userId = UUID.randomUUID(), lastSubmittedTime = "2026-04-11T12:00:00Z")
+        val row = createRow(id = "resp-2", email = "dancer@example.com", userId = UUID.randomUUID())
         val existing = EventRegistration(
             id = UUID.randomUUID(),
             eventId = eventId,
@@ -151,7 +151,7 @@ class GoogleFormSyncServiceTest {
         whenever(googleFormMapper.parseRowStructure("old-row-json")).thenReturn(
             RowStructure(data = emptyList(), lastSubmittedTime = "2026-04-10T12:00:00Z")
         )
-        whenever(googleFormMapper.writeRowStructure(row)).thenReturn("new-row-json")
+        whenever(googleFormMapper.writeRowStructure(row, "2026-04-11T12:00:00Z")).thenReturn("new-row-json")
 
         googleFormSyncService.syncRegistrationData(eventId, organizerId, 20)
 
@@ -172,7 +172,7 @@ class GoogleFormSyncServiceTest {
         val response = FormResponse()
             .setResponseId("resp-3")
             .setRespondentEmail("dancer@example.com")
-        val row = createRow(id = "resp-3", email = "dancer@example.com", userId = mappedUserId, lastSubmittedTime = null)
+        val row = createRow(id = "resp-3", email = "dancer@example.com", userId = mappedUserId)
         val existing = EventRegistration(
             id = UUID.randomUUID(),
             eventId = eventId,
@@ -233,12 +233,11 @@ class GoogleFormSyncServiceTest {
         )
     }
 
-    private fun createRow(id: String, email: String, userId: UUID?, lastSubmittedTime: String?): RegistrationRow {
+    private fun createRow(id: String, email: String, userId: UUID?): RegistrationRow {
         return RegistrationRow(
             id = id,
             user = RegistrationUserDto(email = email, userId = userId),
             data = emptyList(),
-            lastSubmittedTime = lastSubmittedTime,
             status = RegistrationStatus.PENDING
         )
     }

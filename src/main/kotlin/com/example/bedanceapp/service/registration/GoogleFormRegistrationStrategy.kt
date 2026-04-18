@@ -17,7 +17,7 @@ class GoogleFormRegistrationStrategy(
     override fun getRegistrationData(event: Event): RegistrationData {
         val eventId = event.id ?: throw IllegalArgumentException("Event ID cannot be null")
         val formStructureJson = eventRegistrationSettingsRepository.findByEventId(eventId)?.formStructure
-        val headers = googleFormMapper.parseFormStructure(formStructureJson)?.headers ?: emptyList()
+        val headers = listOf<Header>((RegistrationHeaders.UPDATED_AT)).plus(googleFormMapper.parseFormStructure(formStructureJson)?.headers ?: emptyList())
 
         val registrationsByResponseId = eventRegistrationRepository.findByEventId(eventId)
             .associateBy { it.responseId ?: throw IllegalArgumentException("Registration with ID ${it.id} has null responseId") }

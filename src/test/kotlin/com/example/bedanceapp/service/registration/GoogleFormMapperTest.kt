@@ -28,9 +28,9 @@ class GoogleFormMapperTest {
                 id = "resp-1",
                 user = RegistrationUserDto(email = "x@example.com"),
                 data = listOf(RegistrationDataDto("q1", "value")),
-                lastSubmittedTime = "2026-04-10T10:00:00Z",
                 status = RegistrationStatus.PENDING
-            )
+            ),
+            lastSubmittedTime = "2026-04-10T10:00:00Z"
         )
 
         val registration = EventRegistration(
@@ -84,8 +84,6 @@ class GoogleFormMapperTest {
         assertEquals("resp-2", mapped.id)
         assertEquals("form@example.com", mapped.user.email)
         assertEquals(RegistrationStatus.PENDING, mapped.status)
-        assertEquals("2026-04-10T12:00:00Z", mapped.lastSubmittedTime)
-        assertEquals("timestamp", mapped.data.first().id)
         assertEquals("email", mapped.data.last().id)
     }
 
