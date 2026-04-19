@@ -82,6 +82,31 @@ class RegistrationRecalculateServiceTest {
         verify(eventRegistrationRepository, never()).saveAll(any<List<EventRegistration>>())
     }
     @Test
+    @DisplayName("recalculate promotes only earliest waitlisted user when one slot opens in OPEN mode")
+    fun testRecalculateOpenModePromotesSingleEarliestWaitlistedWhenOneSlotOpens() {
+        val now = LocalDateTime.now()
+        val registrations = listOf(
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.WAITLISTED, waitlistedAt = now.minusMinutes(20)),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.WAITLISTED, waitlistedAt = now.minusMinutes(10))
+        )
+        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID)).thenReturn(registrations)
+        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID)).thenReturn(
+            com.example.bedanceapp.model.EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.OPEN)
+        )
+        registrationRecalculateService.recalculate(EVENT_ID, 6)
+        verify(eventRegistrationRepository).saveAll(registrationCaptor.capture())
+        val saved = registrationCaptor.value
+        assertEquals(1, saved.size)
+        assertEquals(registrations[5].userId, saved.first().userId)
+        assertEquals(RegistrationStatus.REGISTERED, saved.first().status)
+        assertEquals(null, saved.first().waitlistedAt)
+    }
+    @Test
     @DisplayName("recalculate balances leader and follower waitlist promotions in COUPLE mode")
     fun testRecalculateCoupleModeBalancesRoles() {
         val now = LocalDateTime.now()
@@ -106,6 +131,35 @@ class RegistrationRecalculateServiceTest {
         assertEquals(ROLE_FOLLOWER, saved[1].roleId)
         assertTrue(saved.all { it.status == RegistrationStatus.REGISTERED })
         assertTrue(saved.all { it.waitlistedAt == null })
+    }
+    @Test
+    @DisplayName("recalculate in COUPLE mode promotes only role with available space after cancellation")
+    fun testRecalculateCoupleModePromotesOnlyRoleWithAvailableSpace() {
+        val now = LocalDateTime.now()
+        val registrations = listOf(
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_LEADER),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_LEADER),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_FOLLOWER),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_FOLLOWER),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.REGISTERED, ROLE_FOLLOWER),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.WAITLISTED, ROLE_LEADER, now.minusMinutes(30)),
+            createRegistration(UUID.randomUUID(), RegistrationStatus.WAITLISTED, ROLE_FOLLOWER, now.minusMinutes(40))
+        )
+        whenever(eventRegistrationRepository.findByEventIdOrderByCreatedAt(EVENT_ID)).thenReturn(registrations)
+        whenever(eventRegistrationSettingsRepository.findByEventId(EVENT_ID)).thenReturn(
+            com.example.bedanceapp.model.EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.COUPLE)
+        )
+        whenever(eventRegistrationQueryService.resolveCoupleRoleIds()).thenReturn(
+            StatusCoupleRoleIds(ROLE_LEADER, ROLE_FOLLOWER)
+        )
+        registrationRecalculateService.recalculate(EVENT_ID, 6)
+        verify(eventRegistrationRepository).saveAll(registrationCaptor.capture())
+        val saved = registrationCaptor.value
+        assertEquals(1, saved.size)
+        assertEquals(ROLE_LEADER, saved.first().roleId)
+        assertEquals(registrations[5].userId, saved.first().userId)
+        assertEquals(RegistrationStatus.REGISTERED, saved.first().status)
+        assertEquals(null, saved.first().waitlistedAt)
     }
     private fun createRegistration(
         userId: UUID,

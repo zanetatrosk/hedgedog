@@ -136,6 +136,47 @@ class RegistrationStatusServiceTest {
         assertEquals(RegistrationStatus.WAITLISTED, result)
     }
     @Test
+    @DisplayName("resolveApprovedStatus ignores non-active statuses and allows registration when role has space")
+    fun testResolveApprovedStatusIgnoresNonActiveStatusesInCoupleMode() {
+        whenever(eventRegistrationQueryService.resolveCoupleRoleIds())
+            .thenReturn(StatusCoupleRoleIds(ROLE_LEADER, ROLE_FOLLOWER))
+        val registrations = listOf(
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_LEADER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_LEADER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_FOLLOWER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_FOLLOWER),
+            createEventRegistration(status = RegistrationStatus.CANCELLED, roleId = ROLE_LEADER),
+            createEventRegistration(status = RegistrationStatus.REJECTED, roleId = ROLE_FOLLOWER)
+        )
+        val result = registrationStatusService.resolveApprovedStatus(
+            registrations = registrations,
+            settings = EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.COUPLE),
+            roleId = ROLE_LEADER,
+            maxAttendees = 6
+        )
+        assertEquals(RegistrationStatus.REGISTERED, result)
+    }
+    @Test
+    @DisplayName("resolveApprovedStatus returns WAITLISTED when leader side is full at capacity 6")
+    fun testResolveApprovedStatusWaitlistedWhenLeaderSideFullAtCapacitySix() {
+        whenever(eventRegistrationQueryService.resolveCoupleRoleIds())
+            .thenReturn(StatusCoupleRoleIds(ROLE_LEADER, ROLE_FOLLOWER))
+        val registrations = listOf(
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_LEADER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_LEADER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_LEADER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_FOLLOWER),
+            createEventRegistration(status = RegistrationStatus.REGISTERED, roleId = ROLE_FOLLOWER)
+        )
+        val result = registrationStatusService.resolveApprovedStatus(
+            registrations = registrations,
+            settings = EventRegistrationSettings(eventId = EVENT_ID, registrationMode = RegistrationMode.COUPLE),
+            roleId = ROLE_LEADER,
+            maxAttendees = 6
+        )
+        assertEquals(RegistrationStatus.WAITLISTED, result)
+    }
+    @Test
     @DisplayName("assignRegistrationStatus returns INTERESTED when status is INTERESTED")
     fun testAssignRegistrationStatusReturnsInterested() {
         val result = registrationStatusService.assignRegistrationStatus(
