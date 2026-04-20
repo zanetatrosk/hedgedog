@@ -23,6 +23,7 @@ class UserService(
 
     @Transactional
     fun updateProfileData(userId: UUID, request: UserProfileDto): UserProfileDto {
+        require(request.firstName?.isNotBlank() == true) { "Name cannot be blank" }
         val existing = userProfileRepository.findById(userId).orElse(null)
         val updatedProfile = userAssembler.buildProfile(userId, request, existing)
         val saved = userProfileRepository.save(updatedProfile)
